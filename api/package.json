@@ -1,0 +1,29 @@
+{
+  "name": "msdrills-research-api",
+  "version": "1.0.0",
+  "description": "MSDrills Research Tools API - Literature Search & Systematic Review",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:prod": "wrangler deploy --env production",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.22.4"
+  },
+  "keywords": [
+    "systematic-review",
+    "literature-search",
+    "pubmed",
+    "openalex",
+    "cloudflare-workers"
+  ],
+  "author": "MasteringSeries",
+  "license": "MIT"
+}

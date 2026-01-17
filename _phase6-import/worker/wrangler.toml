@@ -1,0 +1,16 @@
+name = "search-monitor-worker"
+main = "src/monitor-worker.ts"
+compatibility_date = "2024-01-01"
+
+# Scheduled triggers
+[triggers]
+# Run every 6 hours to check monitors
+crons = ["0 */6 * * *"]
+
+# Environment variables (set via dashboard or wrangler secret)
+[vars]
+# SUPABASE_URL = "https://your-project.supabase.co"
+
+# Secrets (set via: wrangler secret put SUPABASE_SERVICE_KEY)
+# SUPABASE_SERVICE_KEY
+# RESEND_API_KEY (optional, for email notifications)

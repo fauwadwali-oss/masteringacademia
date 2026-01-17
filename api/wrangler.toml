@@ -1,0 +1,32 @@
+name = "msdrills-research-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+# Development
+[dev]
+port = 8787
+local_protocol = "http"
+
+# Production environment
+[env.production]
+name = "msdrills-research-api"
+routes = [
+  { pattern = "api.msdrills.com/research/*", zone_name = "msdrills.com" }
+]
+
+# Environment variables (set via wrangler secret)
+# SUPABASE_URL - Your Supabase project URL
+# SUPABASE_SERVICE_KEY - Service role key for RLS bypass
+# NCBI_API_KEY - Optional, increases PubMed rate limit to 10/sec
+
+[vars]
+ENVIRONMENT = "production"
+
+# Bindings (if needed later)
+# [[kv_namespaces]]
+# binding = "SEARCH_CACHE"
+# id = "xxx"
+
+# [[r2_buckets]]
+# binding = "EXPORTS"
+# bucket_name = "msdrills-exports"

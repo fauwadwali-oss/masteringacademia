@@ -1,0 +1,30 @@
+{
+  "name": "msdrills-research",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "pages:deploy": "npm run pages:build && wrangler pages deploy .vercel/output/static"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
+    "lucide-react": "^0.294.0",
+    "next": "14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.0",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.3.0",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.0.0"
+  }
+}
