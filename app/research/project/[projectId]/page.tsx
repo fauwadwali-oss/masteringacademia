@@ -1,5 +1,7 @@
 'use client';
 
+export const runtime = 'edge';
+
 import React from 'react';
 import ProjectDetailPage from '@/components/dashboard/ProjectDetailPage';
 
