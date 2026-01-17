@@ -40,6 +40,7 @@
     "_phase3-4-import",
     "_phase3-5-import",
     "_phase6-import",
-    "workers"
+    "workers",
+    "api"
   ]
 }
