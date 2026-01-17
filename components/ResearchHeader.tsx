@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { LogOut, User, LogIn } from 'lucide-react';
-import { isSuperAdmin } from '@/lib/admin';
 
 interface ResearchHeaderProps {
   currentPage?: string;
@@ -49,14 +48,6 @@ export default function ResearchHeader({ currentPage, showBackToTools = true }: 
                 <span className="hidden sm:inline">{user.email}</span>
                 <span className="sm:hidden">{user.email?.split('@')[0]}</span>
               </div>
-                  {isSuperAdmin(user.email) && (
-                <Link
-                  href="/admin"
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm rounded-lg transition-colors"
-                >
-                  Admin
-                </Link>
-              )}
               <Link
                 href="/research"
                 className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"

@@ -4,8 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { Loader2, CheckCircle, AlertCircle, BookOpen, Shield } from 'lucide-react';
-import { isSuperAdmin } from '@/lib/admin';
+import { Loader2, CheckCircle, AlertCircle, BookOpen } from 'lucide-react';
 
 type CallbackStatus = 'loading' | 'success' | 'error';
 
@@ -51,15 +50,11 @@ function AuthCallbackContent() {
                     return;
                 }
 
-                // Get user to check if super admin
-                const { data: { user } } = await supabase.auth.getUser();
-                const redirectPath = isSuperAdmin(user?.email) ? '/admin' : '/research';
-
                 // Handle different auth types
                 if (type === 'signup') {
                     setStatus('success');
                     setMessage('Email verified successfully! Redirecting...');
-                    setTimeout(() => router.replace(redirectPath), 2000);
+                    setTimeout(() => router.replace('/research'), 2000);
                 } else if (type === 'recovery') {
                     // Password recovery flow
                     setStatus('success');
@@ -69,7 +64,7 @@ function AuthCallbackContent() {
                     // Regular OAuth login
                     setStatus('success');
                     setMessage('Signed in successfully! Redirecting...');
-                    setTimeout(() => router.replace(redirectPath), 1500);
+                    setTimeout(() => router.replace('/research'), 1500);
                 }
                 return;
             }
@@ -85,25 +80,20 @@ function AuthCallbackContent() {
                     return;
                 }
 
-                // Get user to check if super admin
-                const { data: { user } } = await supabase.auth.getUser();
-                const redirectPath = isSuperAdmin(user?.email) ? '/admin' : '/research';
-
                 setStatus('success');
                 setMessage('Signed in successfully! Redirecting...');
-                setTimeout(() => router.replace(redirectPath), 1500);
+                setTimeout(() => router.replace('/research'), 1500);
                 return;
             }
 
-                // Check for existing session
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session) {
-                    const redirectPath = isSuperAdmin(session.user.email) ? '/admin' : '/research';
-                    setStatus('success');
-                    setMessage('Already signed in. Redirecting...');
-                    setTimeout(() => router.replace(redirectPath), 1000);
-                    return;
-                }
+            // Check for existing session
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                setStatus('success');
+                setMessage('Already signed in. Redirecting...');
+                setTimeout(() => router.replace('/research'), 1000);
+                return;
+            }
 
             // No auth data found
             setStatus('error');
@@ -121,8 +111,7 @@ function AuthCallbackContent() {
             <header className="p-6">
                 <Link href="/" className="flex items-center gap-2 text-blue-600 hover:text-blue-700">
                     <BookOpen className="w-8 h-8" />
-                    <Shield className="w-8 h-8" />
-                    <span className="text-xl font-bold">MSDrills</span>
+                    <span className="text-xl font-bold">Mastering Academia</span>
                 </Link>
             </header>
 

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
-import { isSuperAdmin } from '@/lib/admin';
 import Footer from '@/components/Footer';
 import {
   Search,
@@ -56,15 +55,14 @@ function HomePageContent() {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
 
-  // Redirect logged-in users to their appropriate dashboard (only if not already there)
+  // Redirect logged-in users to research dashboard
   useEffect(() => {
     if (user && !loading && typeof window !== 'undefined') {
       const currentPath = window.location.pathname;
-      const redirectPath = isSuperAdmin(user.email) ? '/admin' : '/research';
-      
+
       // Only redirect if we're on the homepage
       if (currentPath === '/' || currentPath === '') {
-        router.replace(redirectPath);
+        router.replace('/research');
       }
     }
   }, [user, loading, router]);
@@ -201,9 +199,6 @@ function HomePageContent() {
                   <LogIn className="w-4 h-4" />
                   Sign In
                 </Link>
-                <Link href="/login" className="text-slate-400 hover:text-white transition-colors">
-                  Admin Portal
-                </Link>
               </>
             )}
             <Link
@@ -322,31 +317,6 @@ function HomePageContent() {
           </div>
         </div>
       </section>
-
-      {/* Admin Section (Minimal) */}
-      {user && isSuperAdmin(user.email) && (
-        <section className="py-12 px-6 text-center">
-          <div className="relative mb-8">
-            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-              <div className="w-full border-t border-slate-800"></div>
-            </div>
-            <div className="relative flex justify-center">
-              <span className="px-4 bg-slate-950 text-sm text-slate-500">Internal Tools</span>
-            </div>
-          </div>
-
-          <p className="text-slate-500 text-sm mb-6">
-            Content creation hub for MasteringSeries
-          </p>
-
-          <Link
-            href="/admin"
-            className="inline-flex items-center text-slate-400 hover:text-white text-sm font-medium transition-colors"
-          >
-            Go to Admin Portal <ArrowRight size={14} className="ml-1" />
-          </Link>
-        </section>
-      )}
 
       {/* Footer */}
       <Footer />

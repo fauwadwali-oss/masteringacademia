@@ -7,9 +7,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import {
     Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle,
-    Loader2, ArrowRight, BookOpen, Shield
+    Loader2, ArrowRight, BookOpen
 } from 'lucide-react';
-import { isSuperAdmin } from '@/lib/admin';
 import Footer from '@/components/Footer';
 
 function LoginForm() {
@@ -38,21 +37,15 @@ function LoginForm() {
         }
     }, [searchParams]);
 
-    // Redirect if already logged in - admin goes to admin dashboard, others to research
+    // Redirect if already logged in
     useEffect(() => {
         if (user && !authLoading && typeof window !== 'undefined') {
             const currentPath = window.location.pathname;
-            
+
             // Only redirect if we're on the login page
             if (currentPath === '/login') {
-                // Check if user is super admin
-                if (isSuperAdmin(user.email)) {
-                    router.replace('/admin');
-                } else {
-                    // Regular users go to research page
-                    const redirect = searchParams.get('redirect') || '/research';
-                    router.replace(redirect);
-                }
+                const redirect = searchParams.get('redirect') || '/research';
+                router.replace(redirect);
             }
         }
     }, [user, authLoading, router, searchParams]);
@@ -79,17 +72,9 @@ function LoginForm() {
                 return;
             }
 
-            // Get the current user to check if super admin
-            const { data: { user: currentUser } } = await supabase.auth.getUser();
-            
-            // Redirect based on user type
-            if (isSuperAdmin(currentUser?.email)) {
-                router.replace('/admin');
-            } else {
-                // Regular users go to research page
-                const redirect = searchParams.get('redirect') || '/research';
-                router.replace(redirect);
-            }
+            // Redirect to research page
+            const redirect = searchParams.get('redirect') || '/research';
+            router.replace(redirect);
         } catch (err) {
             setError('An unexpected error occurred. Please try again.');
         } finally {
@@ -146,10 +131,9 @@ function LoginForm() {
                         <div className="text-center mb-8">
                             <div className="flex items-center justify-center gap-2 mb-2">
                                 <BookOpen className="w-6 h-6 text-blue-600" />
-                                <Shield className="w-6 h-6 text-teal-600" />
                             </div>
-                            <h1 className="text-2xl font-bold text-gray-900">MSDrills Login</h1>
-                            <p className="text-gray-500 mt-2">Sign in to access research tools or admin dashboard</p>
+                            <h1 className="text-2xl font-bold text-gray-900">Mastering Academia</h1>
+                            <p className="text-gray-500 mt-2">Sign in to access research tools</p>
                         </div>
 
                         {/* Success Message */}
