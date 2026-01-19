@@ -6,8 +6,8 @@ import AuthProviderComponent from '@/components/auth/AuthProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'MSDrills Research Tools',
-  description: 'Public-facing research tools for systematic reviews',
+  title: 'Mastering Academia',
+  description: 'Research tools for MPH, MHA & MBA students - systematic reviews, literature search, and more',
 }
 
 export default function RootLayout({
