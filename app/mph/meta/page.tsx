@@ -733,7 +733,7 @@ export default function MetaAnalysisPage() {
             <nav className="border-b border-slate-800 sticky top-0 bg-slate-900/95 backdrop-blur z-40">
                 <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <a href="/research" className="flex items-center gap-2">
+                        <a href="/mph" className="flex items-center gap-2">
                             <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
                                 <span className="text-white font-bold text-sm">MS</span>
                             </div>
@@ -742,7 +742,7 @@ export default function MetaAnalysisPage() {
                         <span className="text-slate-500">/</span>
                         <span className="text-cyan-400">Meta-Analysis</span>
                     </div>
-                    <a href="/research" className="text-slate-400 hover:text-white text-sm">
+                    <a href="/mph" className="text-slate-400 hover:text-white text-sm">
                         ← All Tools
                     </a>
                 </div>

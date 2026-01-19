@@ -82,7 +82,7 @@ function SignupForm() {
     // Redirect if already logged in
     useEffect(() => {
         if (user && !authLoading) {
-            router.push('/research');
+            router.push('/select-program');
         }
     }, [user, authLoading, router]);
 

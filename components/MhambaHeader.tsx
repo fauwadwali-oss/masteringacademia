@@ -4,14 +4,14 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { LogOut, User, LogIn } from 'lucide-react';
+import { LogOut, User, LogIn, ArrowLeft } from 'lucide-react';
 
-interface ResearchHeaderProps {
+interface MhambaHeaderProps {
   currentPage?: string;
   showBackToTools?: boolean;
 }
 
-export default function ResearchHeader({ currentPage, showBackToTools = true }: ResearchHeaderProps) {
+export default function MhambaHeader({ currentPage, showBackToTools = true }: MhambaHeaderProps) {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
 
@@ -24,16 +24,16 @@ export default function ResearchHeader({ currentPage, showBackToTools = true }: 
     <nav className="border-b border-slate-800 bg-slate-900/95 backdrop-blur sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/mph" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
+          <Link href="/mhamba" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">MA</span>
             </div>
-            <span className="text-white font-semibold">MPH Tools</span>
+            <span className="text-white font-semibold">MHA/MBA Tools</span>
           </Link>
           {currentPage && (
             <>
               <span className="text-slate-500">/</span>
-              <span className="text-violet-400">{currentPage}</span>
+              <span className="text-purple-400">{currentPage}</span>
             </>
           )}
         </div>
@@ -49,8 +49,8 @@ export default function ResearchHeader({ currentPage, showBackToTools = true }: 
                 <span className="sm:hidden">{user.email?.split('@')[0]}</span>
               </div>
               <Link
-                href="/mph"
-                className="px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"
+                href="/mhamba"
+                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg transition-colors"
               >
                 Dashboard
               </Link>
@@ -65,13 +65,14 @@ export default function ResearchHeader({ currentPage, showBackToTools = true }: 
           ) : (
             <>
               {showBackToTools && (
-                <Link href="/mph" className="text-slate-400 hover:text-white text-sm">
-                  ← All Tools
+                <Link href="/mhamba" className="text-slate-400 hover:text-white text-sm flex items-center gap-1">
+                  <ArrowLeft className="w-4 h-4" />
+                  All Tools
                 </Link>
               )}
               <Link
                 href="/login"
-                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg transition-colors"
               >
                 <LogIn className="w-4 h-4" />
                 Sign In
@@ -83,4 +84,3 @@ export default function ResearchHeader({ currentPage, showBackToTools = true }: 
     </nav>
   );
 }
-

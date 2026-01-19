@@ -84,16 +84,16 @@ const REVIEW_TYPES = {
 
 // Tool navigation configuration
 const TOOLS = [
-  { id: 'search', name: 'Literature Search', icon: Search, route: '/research/search', phase: 1 },
-  { id: 'dedupe', name: 'Deduplication', icon: GitBranch, route: '/research/dedupe', phase: 2 },
-  { id: 'screen', name: 'Screening', icon: Filter, route: '/research/screen', phase: 3 },
-  { id: 'extract', name: 'Data Extraction', icon: Database, route: '/research/extract', phase: 4 },
-  { id: 'rob', name: 'Risk of Bias', icon: Shield, route: '/research/rob', phase: 5 },
-  { id: 'meta', name: 'Meta-Analysis', icon: BarChart3, route: '/research/meta', phase: 6 },
-  { id: 'grade', name: 'GRADE Tables', icon: Table2, route: '/research/grade', phase: 7 },
-  { id: 'prisma', name: 'PRISMA Flow', icon: GitBranch, route: '/research/prisma', phase: 8 },
-  { id: 'monitor', name: 'Search Monitor', icon: Bell, route: '/research/monitor', phase: 9 },
-  { id: 'citations', name: 'Citation Chaining', icon: Link2, route: '/research/citations', phase: 10 }
+  { id: 'search', name: 'Literature Search', icon: Search, route: '/mph/search', phase: 1 },
+  { id: 'dedupe', name: 'Deduplication', icon: GitBranch, route: '/mph/dedupe', phase: 2 },
+  { id: 'screen', name: 'Screening', icon: Filter, route: '/mph/screen', phase: 3 },
+  { id: 'extract', name: 'Data Extraction', icon: Database, route: '/mph/extract', phase: 4 },
+  { id: 'rob', name: 'Risk of Bias', icon: Shield, route: '/mph/rob', phase: 5 },
+  { id: 'meta', name: 'Meta-Analysis', icon: BarChart3, route: '/mph/meta', phase: 6 },
+  { id: 'grade', name: 'GRADE Tables', icon: Table2, route: '/mph/grade', phase: 7 },
+  { id: 'prisma', name: 'PRISMA Flow', icon: GitBranch, route: '/mph/prisma', phase: 8 },
+  { id: 'monitor', name: 'Search Monitor', icon: Bell, route: '/mph/monitor', phase: 9 },
+  { id: 'citations', name: 'Citation Chaining', icon: Link2, route: '/mph/citations', phase: 10 }
 ];
 
 export default function ProjectDashboard() {
@@ -109,7 +109,7 @@ export default function ProjectDashboard() {
   // Redirect to research page if not authenticated (research page is the dashboard)
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/research');
+      router.push('/mph');
     }
   }, [user, authLoading, router]);
 
@@ -400,7 +400,7 @@ function ProjectCard({
   };
 
   const navigateToProject = () => {
-    router.push(`/research/project/${project.id}`);
+    router.push(`/mph/project/${project.id}`);
   };
 
   return (
@@ -547,21 +547,21 @@ function ProjectMenu({
       <div className="fixed inset-0 z-10" onClick={onClose} />
       <div className="absolute right-0 top-8 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
         <a
-          href={`/research/project/${project.id}`}
+          href={`/mph/project/${project.id}`}
           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
         >
           <FolderOpen className="w-4 h-4" />
           Open Project
         </a>
         <a
-          href={`/research/project/${project.id}/team`}
+          href={`/mph/project/${project.id}/team`}
           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
         >
           <Users className="w-4 h-4" />
           Team
         </a>
         <a
-          href={`/research/project/${project.id}/settings`}
+          href={`/mph/project/${project.id}/settings`}
           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
         >
           <Settings className="w-4 h-4" />

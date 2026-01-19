@@ -184,7 +184,7 @@ export default function PRISMAGeneratorPage() {
       {/* Header */}
       <nav className="border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <a href="/research" className="flex items-center gap-2">
+          <a href="/mph" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">MS</span>
             </div>
@@ -192,7 +192,7 @@ export default function PRISMAGeneratorPage() {
             <span className="text-slate-500">/</span>
             <span className="text-violet-400">PRISMA Generator</span>
           </a>
-          <a href="/research" className="text-slate-400 hover:text-white text-sm">
+          <a href="/mph" className="text-slate-400 hover:text-white text-sm">
             ← All Tools
           </a>
         </div>
@@ -622,7 +622,7 @@ export default function PRISMAGeneratorPage() {
       <footer className="border-t border-slate-800 mt-12">
         <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between text-sm text-slate-500">
           <span>MSDrills Research Tools • PRISMA 2020 Compliant</span>
-          <a href="/research" className="text-violet-400 hover:text-violet-300">
+          <a href="/mph" className="text-violet-400 hover:text-violet-300">
             Back to Research Tools
           </a>
         </div>

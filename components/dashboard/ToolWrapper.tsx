@@ -208,7 +208,7 @@ function StandaloneHeader({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-16">
           <button
-            onClick={() => router.push('/research')}
+            onClick={() => router.push('/mph')}
             className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 mr-4"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -250,7 +250,7 @@ function ProjectHeader({
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 py-2 text-sm">
           <button
-            onClick={() => router.push('/research')}
+            onClick={() => router.push('/mph')}
             className="text-gray-500 hover:text-gray-700 flex items-center gap-1"
           >
             <Home className="w-4 h-4" />
@@ -258,7 +258,7 @@ function ProjectHeader({
           </button>
           <ChevronRight className="w-4 h-4 text-gray-400" />
           <button
-            onClick={() => router.push(`/research/project/${projectId}`)}
+            onClick={() => router.push(`/mph/project/${projectId}`)}
             className="text-gray-500 hover:text-gray-700 truncate max-w-[200px]"
           >
             {project?.title || 'Project'}
@@ -271,7 +271,7 @@ function ProjectHeader({
         <div className="flex items-center justify-between py-3 border-t border-gray-100">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push(`/research/project/${projectId}`)}
+              onClick={() => router.push(`/mph/project/${projectId}`)}
               className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -348,7 +348,7 @@ function ToolQuickNav({ currentTool }: { currentTool: string }) {
                 <button
                   key={tool.id}
                   onClick={() => {
-                    router.push(`/research/project/${projectId}/${tool.id}`);
+                    router.push(`/mph/project/${projectId}/${tool.id}`);
                     setShowMenu(false);
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-2 text-left ${isCurrent

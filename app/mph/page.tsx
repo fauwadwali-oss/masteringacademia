@@ -9,8 +9,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { FolderOpen, Plus, ArrowRight, Clock, AlertCircle } from 'lucide-react';
 
-// Research Tools Landing Page - Dashboard for logged-in users
-// Route: /research
+// MPH Research Tools Landing Page - Dashboard for logged-in users
+// Route: /mph
 
 interface ToolCardProps {
   icon: React.ReactNode
@@ -146,7 +146,7 @@ const ResearchPage: React.FC = () => {
       icon: '🔍',
       title: 'Literature Search',
       description: 'Search PubMed and other databases efficiently.',
-      href: '/research/search',
+      href: '/mph/search',
       status: 'available',
       features: ['Multi-database search', 'Advanced query builder', 'Auto-save history', 'Export to RIS'],
     },
@@ -154,7 +154,7 @@ const ResearchPage: React.FC = () => {
       icon: '📊',
       title: 'PRISMA Generator',
       description: 'Generate PRISMA 2020 flow diagrams automatically.',
-      href: '/research/prisma',
+      href: '/mph/prisma',
       status: 'available',
       features: ['PRISMA 2020 compliant', 'Editable nodes', 'Export to PNG/SVG', 'Live preview'],
     },
@@ -162,7 +162,7 @@ const ResearchPage: React.FC = () => {
       icon: '🔄',
       title: 'Deduplication',
       description: 'Remove duplicate records from your search results.',
-      href: '/research/dedupe',
+      href: '/mph/dedupe',
       status: 'available',
       features: ['Intelligent matching', 'Manual review mode', 'Merge records', 'Conflict resolution'],
     },
@@ -170,7 +170,7 @@ const ResearchPage: React.FC = () => {
       icon: '👀',
       title: 'Screening Tracker',
       description: 'Track titles and abstracts for inclusion/exclusion.',
-      href: '/research/screener',
+      href: '/mph/screener',
       status: 'available',
       features: ['Keyboard shortcuts', 'Progress stats', 'Conflict highlighting', 'Team collaboration'],
     },
@@ -178,7 +178,7 @@ const ResearchPage: React.FC = () => {
       icon: '📄',
       title: 'Data Extraction',
       description: 'Customizable extraction forms for systematic data collection.',
-      href: '/research/extraction',
+      href: '/mph/extraction',
       status: 'available',
       features: ['Custom form builder', 'PICO extraction templates', 'Export to Excel/CSV', 'RevMan XML export'],
     },
@@ -186,7 +186,7 @@ const ResearchPage: React.FC = () => {
       icon: '🛡️',
       title: 'Risk of Bias',
       description: 'Assess study quality using Cochrane ROB 2, ROBINS-I, and NOS tools.',
-      href: '/research/rob',
+      href: '/mph/rob',
       status: 'available',
       features: ['Standardized tools', 'Traffic light plots', 'Summary statistics', 'Export to CSV'],
     },
@@ -194,7 +194,7 @@ const ResearchPage: React.FC = () => {
       icon: '🧮',
       title: 'Meta-Analysis',
       description: 'Perform statistical pooling and generate forest/funnel plots.',
-      href: '/research/meta',
+      href: '/mph/meta',
       status: 'available',
       features: ['Random/Fixed effects', 'Forest & Funnel plots', 'I² heterogeneity', 'Export high-res plots'],
     },
@@ -202,7 +202,7 @@ const ResearchPage: React.FC = () => {
       icon: '⭐',
       title: 'GRADE Evidence',
       description: 'Create Summary of Findings tables and assess certainty of evidence.',
-      href: '/research/grade',
+      href: '/mph/grade',
       status: 'available',
       features: ['GRADE methodology', 'Summary of Findings tables', 'Certainty rating', 'Export to HTML/CSV'],
     },
@@ -210,7 +210,7 @@ const ResearchPage: React.FC = () => {
       icon: '🔗',
       title: 'Citation Chaining',
       description: 'Explore forward and backward citations for snowball searches.',
-      href: '/research/citations',
+      href: '/mph/citations',
       status: 'available',
       features: ['Forward/Backward citations', 'Snowballing methodology', 'Visual chain navigation', 'Export to CSV'],
     },
@@ -218,7 +218,7 @@ const ResearchPage: React.FC = () => {
       icon: '🔔',
       title: 'Search Monitor',
       description: 'Get alerts when new papers match your search criteria.',
-      href: '/research/monitor',
+      href: '/mph/monitor',
       status: 'available',
       features: ['Weekly/monthly alerts', 'OpenAlex integration', 'New paper tracking', 'Export results'],
     },
@@ -247,7 +247,7 @@ const ResearchPage: React.FC = () => {
                 <h2 className="text-xl font-bold text-white">My Projects</h2>
               </div>
               <Link
-                href="/research/dashboard"
+                href="/mph/dashboard"
                 className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"
               >
                 <Plus className="w-4 h-4" />
@@ -266,7 +266,7 @@ const ResearchPage: React.FC = () => {
                 {projects.map((project) => (
                   <Link
                     key={project.id}
-                    href={`/research/project/${project.id}`}
+                    href={`/mph/project/${project.id}`}
                     className="block p-4 bg-slate-900/50 rounded-lg border border-slate-700/50 hover:border-violet-500/50 hover:bg-slate-800/50 transition-all"
                   >
                     <h3 className="text-white font-semibold mb-1 truncate">{project.title}</h3>
@@ -287,7 +287,7 @@ const ResearchPage: React.FC = () => {
               <div className="text-center py-6">
                 <p className="text-slate-400 mb-4">You don't have any projects yet.</p>
                 <Link
-                  href="/research/dashboard"
+                  href="/mph/dashboard"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"
                 >
                   <Plus className="w-4 h-4" />
@@ -298,7 +298,7 @@ const ResearchPage: React.FC = () => {
             {projects.length > 0 && (
               <div className="mt-4 text-center">
                 <Link
-                  href="/research/dashboard"
+                  href="/mph/dashboard"
                   className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 text-sm transition-colors"
                 >
                   View All Projects
@@ -334,7 +334,7 @@ const ResearchPage: React.FC = () => {
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
           <a
-            href="/research/search"
+            href="/mph/search"
             className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
           >
             <span>Start Searching</span>
@@ -452,7 +452,7 @@ const ResearchPage: React.FC = () => {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href="/research/search"
+              href="/mph/search"
               className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-medium rounded-lg transition-colors"
             >
               Get Started Now

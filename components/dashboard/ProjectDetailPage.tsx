@@ -305,7 +305,7 @@ export default function ProjectDetailPage() {
   const navigateToTool = (tool: typeof TOOLS[0]) => {
     const status = getToolStatus(tool);
     if (status === 'locked') return;
-    router.push(`/research/project/${projectId}/${tool.route}`);
+    router.push(`/mph/project/${projectId}/${tool.route}`);
   };
 
   // Don't render until mounted (client-side only)
@@ -331,7 +331,7 @@ export default function ProjectDetailPage() {
         <div className="text-center">
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Project not found</h2>
           <button
-            onClick={() => router.push('/research')}
+            onClick={() => router.push('/mph')}
             className="text-blue-600 hover:text-blue-700"
           >
             Return to Dashboard
@@ -349,7 +349,7 @@ export default function ProjectDetailPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => router.push('/research')}
+                onClick={() => router.push('/mph')}
                 className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -364,14 +364,14 @@ export default function ProjectDetailPage() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => router.push(`/research/project/${projectId}/team`)}
+                onClick={() => router.push(`/mph/project/${projectId}/team`)}
                 className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
               >
                 <Users className="w-5 h-5" />
                 Team
               </button>
               <button
-                onClick={() => router.push(`/research/project/${projectId}/settings`)}
+                onClick={() => router.push(`/mph/project/${projectId}/settings`)}
                 className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
               >
                 <Settings className="w-5 h-5" />

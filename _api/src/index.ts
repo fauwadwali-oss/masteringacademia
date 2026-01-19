@@ -1,6 +1,6 @@
 // MSDrills Research Tools - Literature Search Worker
 // Cloudflare Worker for parallel database searches
-// Version: 1.0.0
+// Version: 2.0.0 - Added MHA/MBA Literature Search
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -48,6 +48,60 @@ interface Env {
   SUPABASE_URL: string;
   SUPABASE_SERVICE_KEY: string;
   NCBI_API_KEY?: string; // Optional, increases rate limit
+  APIFY_API_KEY?: string; // For Google Scholar and SSRN scraping
+}
+
+// ============================================
+// MHA/MBA Types
+// ============================================
+
+interface MhambaPaper {
+  doi?: string;
+  title: string;
+  abstract?: string;
+  authors: Author[];
+  journal?: string;
+  journal_issn?: string;
+  year?: number;
+  url?: string;
+  source: string;
+  citation_count?: number;
+  publication_type?: string;
+  journal_tier?: number;
+  abs_rating?: string;
+  abdc_rating?: string;
+  is_ft50?: boolean;
+  raw?: any;
+}
+
+interface MhambaSearchRequest {
+  query: string;
+  sources?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  maxResults?: number;
+  projectId?: string;
+  userId?: string;
+  minJournalTier?: number;
+}
+
+interface MhambaSearchResult {
+  source: string;
+  papers: MhambaPaper[];
+  totalCount: number;
+  searchTime: number;
+  error?: string;
+}
+
+interface JournalRanking {
+  id: string;
+  journal_name: string;
+  issn?: string;
+  abs_rating?: string;
+  abdc_rating?: string;
+  is_ft50: boolean;
+  tier: number;
+  subject_areas?: string[];
 }
 
 // ============================================
@@ -438,6 +492,408 @@ async function searchEuropePMC(
 }
 
 // ============================================
+// MHA/MBA Search Adapters
+// ============================================
+
+// Crossref API - Great for DOI resolution and business journals
+async function searchCrossref(
+  query: string,
+  maxResults: number = 100
+): Promise<MhambaSearchResult> {
+  const startTime = Date.now();
+  const source = 'crossref';
+
+  try {
+    const url = new URL('https://api.crossref.org/works');
+    url.searchParams.set('query', query);
+    url.searchParams.set('rows', Math.min(maxResults, 1000).toString());
+    url.searchParams.set('select', 'DOI,title,abstract,author,container-title,published,ISSN,is-referenced-by-count,type,URL');
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        'User-Agent': 'MasteringAcademia/1.0 (https://masteringacademia.com; mailto:contact@masteringseries.com)'
+      }
+    });
+
+    const data = await response.json() as any;
+
+    const papers: MhambaPaper[] = (data.message?.items || []).map((item: any) => ({
+      doi: item.DOI,
+      title: Array.isArray(item.title) ? item.title[0] : (item.title || 'No title'),
+      abstract: item.abstract ? item.abstract.replace(/<[^>]*>/g, '') : undefined, // Strip HTML
+      authors: (item.author || []).map((a: any) => ({
+        name: `${a.given || ''} ${a.family || ''}`.trim() || 'Unknown',
+        affiliation: a.affiliation?.[0]?.name,
+        orcid: a.ORCID
+      })),
+      journal: Array.isArray(item['container-title']) ? item['container-title'][0] : item['container-title'],
+      journal_issn: Array.isArray(item.ISSN) ? item.ISSN[0] : item.ISSN,
+      year: item.published?.['date-parts']?.[0]?.[0],
+      url: item.URL || (item.DOI ? `https://doi.org/${item.DOI}` : undefined),
+      citation_count: item['is-referenced-by-count'],
+      publication_type: item.type,
+      source: 'crossref'
+    }));
+
+    return {
+      source,
+      papers,
+      totalCount: data.message?.['total-results'] || papers.length,
+      searchTime: Date.now() - startTime
+    };
+  } catch (error) {
+    return {
+      source,
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+// CORE API - Open access research papers
+async function searchCORE(
+  query: string,
+  maxResults: number = 100
+): Promise<MhambaSearchResult> {
+  const startTime = Date.now();
+  const source = 'core';
+
+  try {
+    // CORE API v3
+    const url = new URL('https://api.core.ac.uk/v3/search/works');
+    url.searchParams.set('q', query);
+    url.searchParams.set('limit', Math.min(maxResults, 100).toString());
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        'Authorization': 'Bearer free', // CORE has a free tier with limited calls
+        'Accept': 'application/json'
+      }
+    });
+
+    const data = await response.json() as any;
+
+    const papers: MhambaPaper[] = (data.results || []).map((item: any) => ({
+      doi: item.doi,
+      title: item.title || 'No title',
+      abstract: item.abstract,
+      authors: (item.authors || []).map((a: any) => ({
+        name: a.name || 'Unknown'
+      })),
+      journal: item.publisher,
+      year: item.yearPublished,
+      url: item.downloadUrl || item.sourceFulltextUrls?.[0] || (item.doi ? `https://doi.org/${item.doi}` : undefined),
+      citation_count: item.citationCount,
+      publication_type: item.documentType,
+      source: 'core'
+    }));
+
+    return {
+      source,
+      papers,
+      totalCount: data.totalHits || papers.length,
+      searchTime: Date.now() - startTime
+    };
+  } catch (error) {
+    return {
+      source,
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+// OpenAlex API for MHA/MBA (reusing existing but with business focus)
+async function searchOpenAlexBusiness(
+  query: string,
+  maxResults: number = 100
+): Promise<MhambaSearchResult> {
+  const startTime = Date.now();
+  const source = 'openalex';
+
+  try {
+    const url = new URL('https://api.openalex.org/works');
+    url.searchParams.set('search', query);
+    url.searchParams.set('per_page', Math.min(maxResults, 200).toString());
+    url.searchParams.set('mailto', 'contact@masteringseries.com');
+    // Filter for business/management/economics concepts
+    // OpenAlex concept IDs for business fields would be used in production
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        'User-Agent': 'MasteringAcademia/1.0 (https://masteringacademia.com; contact@masteringseries.com)'
+      }
+    });
+
+    const data = await response.json() as any;
+
+    const papers: MhambaPaper[] = (data.results || []).map((work: any) => ({
+      doi: work.doi?.replace('https://doi.org/', ''),
+      title: work.title || 'No title',
+      abstract: work.abstract_inverted_index
+        ? reconstructAbstract(work.abstract_inverted_index)
+        : undefined,
+      authors: (work.authorships || []).map((a: any) => ({
+        name: a.author?.display_name || 'Unknown',
+        orcid: a.author?.orcid,
+        affiliation: a.institutions?.[0]?.display_name
+      })),
+      journal: work.primary_location?.source?.display_name,
+      journal_issn: work.primary_location?.source?.issn_l,
+      year: work.publication_year,
+      url: work.primary_location?.landing_page_url || work.doi,
+      citation_count: work.cited_by_count,
+      publication_type: work.type,
+      source: 'openalex',
+      raw: work
+    }));
+
+    return {
+      source,
+      papers,
+      totalCount: data.meta?.count || papers.length,
+      searchTime: Date.now() - startTime
+    };
+  } catch (error) {
+    return {
+      source,
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+// Semantic Scholar for MHA/MBA
+async function searchSemanticScholarBusiness(
+  query: string,
+  maxResults: number = 100
+): Promise<MhambaSearchResult> {
+  const startTime = Date.now();
+  const source = 'semantic_scholar';
+
+  try {
+    const url = new URL('https://api.semanticscholar.org/graph/v1/paper/search');
+    url.searchParams.set('query', query);
+    url.searchParams.set('limit', Math.min(maxResults, 100).toString());
+    url.searchParams.set('fields', 'paperId,externalIds,title,abstract,authors,year,venue,citationCount,url,publicationTypes,journal');
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        'User-Agent': 'MasteringAcademia/1.0'
+      }
+    });
+
+    const data = await response.json() as any;
+
+    const papers: MhambaPaper[] = (data.data || []).map((paper: any) => ({
+      doi: paper.externalIds?.DOI,
+      title: paper.title || 'No title',
+      abstract: paper.abstract,
+      authors: (paper.authors || []).map((a: any) => ({
+        name: a.name || 'Unknown'
+      })),
+      journal: paper.journal?.name || paper.venue,
+      journal_issn: paper.journal?.issn,
+      year: paper.year,
+      url: paper.url,
+      citation_count: paper.citationCount,
+      publication_type: paper.publicationTypes?.[0],
+      source: 'semantic_scholar'
+    }));
+
+    return {
+      source,
+      papers,
+      totalCount: data.total || papers.length,
+      searchTime: Date.now() - startTime
+    };
+  } catch (error) {
+    return {
+      source,
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+// Google Scholar via Apify
+async function searchGoogleScholar(
+  query: string,
+  maxResults: number = 50,
+  apifyApiKey?: string
+): Promise<MhambaSearchResult> {
+  const startTime = Date.now();
+  const source = 'google_scholar';
+
+  if (!apifyApiKey) {
+    return {
+      source,
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: 'Apify API key required for Google Scholar'
+    };
+  }
+
+  try {
+    // Start Apify actor run
+    const actorId = 'marco-gullo/google-scholar-scraper'; // Popular Google Scholar actor
+    const runUrl = `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${apifyApiKey}`;
+
+    const response = await fetch(runUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        queries: query,
+        maxResults: Math.min(maxResults, 100),
+        csvFriendlyOutput: false
+      })
+    });
+
+    const data = await response.json() as any[];
+
+    const papers: MhambaPaper[] = (data || []).map((item: any) => ({
+      doi: extractDOIFromUrl(item.url),
+      title: item.title || 'No title',
+      abstract: item.snippet,
+      authors: parseGoogleScholarAuthors(item.authors),
+      journal: item.publicationInfo,
+      year: item.year ? parseInt(item.year) : undefined,
+      url: item.url,
+      citation_count: item.citedBy ? parseInt(item.citedBy) : undefined,
+      publication_type: 'article',
+      source: 'google_scholar'
+    }));
+
+    return {
+      source,
+      papers,
+      totalCount: papers.length,
+      searchTime: Date.now() - startTime
+    };
+  } catch (error) {
+    return {
+      source,
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+// SSRN via Apify
+async function searchSSRN(
+  query: string,
+  maxResults: number = 50,
+  apifyApiKey?: string
+): Promise<MhambaSearchResult> {
+  const startTime = Date.now();
+  const source = 'ssrn';
+
+  if (!apifyApiKey) {
+    return {
+      source,
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: 'Apify API key required for SSRN'
+    };
+  }
+
+  try {
+    // SSRN scraper actor - may need to find appropriate actor or use web scraper
+    const actorId = 'apify/web-scraper';
+    const runUrl = `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${apifyApiKey}`;
+
+    const ssrnSearchUrl = `https://papers.ssrn.com/sol3/results.cfm?txtKey_Words=${encodeURIComponent(query)}`;
+
+    const response = await fetch(runUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        startUrls: [{ url: ssrnSearchUrl }],
+        pageFunction: `async function pageFunction(context) {
+          const $ = context.jQuery;
+          const results = [];
+          $('.result-item, .paper-result').each((i, el) => {
+            if (i >= ${maxResults}) return false;
+            results.push({
+              title: $(el).find('.title, h3 a').text().trim(),
+              abstract: $(el).find('.abstract, .description').text().trim(),
+              authors: $(el).find('.authors, .author-name').text().trim(),
+              url: $(el).find('a.title, h3 a').attr('href'),
+              downloads: $(el).find('.downloads, .download-count').text().trim()
+            });
+          });
+          return results;
+        }`
+      })
+    });
+
+    const data = await response.json() as any[];
+
+    const papers: MhambaPaper[] = (data || []).map((item: any) => ({
+      doi: extractSSRNId(item.url),
+      title: item.title || 'No title',
+      abstract: item.abstract,
+      authors: parseSSRNAuthors(item.authors),
+      year: undefined,
+      url: item.url?.startsWith('http') ? item.url : `https://papers.ssrn.com${item.url}`,
+      citation_count: item.downloads ? parseInt(item.downloads.replace(/\D/g, '')) : undefined,
+      publication_type: 'working_paper',
+      source: 'ssrn'
+    }));
+
+    return {
+      source,
+      papers,
+      totalCount: papers.length,
+      searchTime: Date.now() - startTime
+    };
+  } catch (error) {
+    return {
+      source,
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
+// Helper functions for MHA/MBA adapters
+function extractDOIFromUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  const doiMatch = url.match(/10\.\d{4,}\/[^\s]+/);
+  return doiMatch ? doiMatch[0] : undefined;
+}
+
+function parseGoogleScholarAuthors(authorStr?: string): Author[] {
+  if (!authorStr) return [];
+  return authorStr.split(',').map(name => ({ name: name.trim() }));
+}
+
+function extractSSRNId(url?: string): string | undefined {
+  if (!url) return undefined;
+  const match = url.match(/abstract[_=](\d+)/i);
+  return match ? `ssrn.${match[1]}` : undefined;
+}
+
+function parseSSRNAuthors(authorStr?: string): Author[] {
+  if (!authorStr) return [];
+  return authorStr.split(/[,;]/).map(name => ({ name: name.trim() })).filter(a => a.name);
+}
+
+// ============================================
 // Deduplication Logic
 // ============================================
 
@@ -725,6 +1181,112 @@ export default {
           status: 'ok',
           service: 'screening',
           timestamp: new Date().toISOString(),
+        });
+      }
+
+      // ============================================
+      // MHA/MBA Routes
+      // ============================================
+
+      // POST /mhamba/search - Multi-source business literature search
+      if (path === '/mhamba/search' && request.method === 'POST') {
+        const body = await request.json() as MhambaSearchRequest;
+        return await handleMhambaSearch(body, env);
+      }
+
+      // GET /mhamba/search - Simple query param search
+      if (path === '/mhamba/search' && request.method === 'GET') {
+        const query = url.searchParams.get('q') || url.searchParams.get('query');
+        if (!query) {
+          return jsonResponse({ error: 'Missing query parameter' }, 400);
+        }
+        const sources = url.searchParams.get('sources')?.split(',') || ['openalex', 'crossref', 'semantic_scholar'];
+        const maxResults = parseInt(url.searchParams.get('max') || '100');
+        const userId = url.searchParams.get('userId') || undefined;
+        return await handleMhambaSearch({ query, sources, maxResults, userId }, env);
+      }
+
+      // GET /mhamba/sources - Available sources
+      if (path === '/mhamba/sources') {
+        return jsonResponse({
+          available: [
+            { id: 'openalex', name: 'OpenAlex', papers: '250M', type: 'api', tier: 'core' },
+            { id: 'crossref', name: 'Crossref', papers: '140M', type: 'api', tier: 'core' },
+            { id: 'semantic_scholar', name: 'Semantic Scholar', papers: '200M', type: 'api', tier: 'core' },
+            { id: 'core', name: 'CORE', papers: '200M', type: 'api', tier: 'open_access' },
+            { id: 'google_scholar', name: 'Google Scholar', papers: 'Unknown', type: 'scraper', tier: 'broad', requiresApify: true },
+            { id: 'ssrn', name: 'SSRN', papers: '1M+', type: 'scraper', tier: 'working_papers', requiresApify: true }
+          ]
+        });
+      }
+
+      // GET /mhamba/journals - List journal rankings
+      if (path === '/mhamba/journals' && request.method === 'GET') {
+        const tier = url.searchParams.get('tier');
+        const search = url.searchParams.get('search');
+        const limit = parseInt(url.searchParams.get('limit') || '100');
+        return await listJournalRankings(tier, search, limit, env);
+      }
+
+      // POST /mhamba/journals - Add/update journal ranking
+      if (path === '/mhamba/journals' && request.method === 'POST') {
+        return await upsertJournalRanking(request, env);
+      }
+
+      // GET /mhamba/journals/lookup - Lookup journal by name or ISSN
+      if (path === '/mhamba/journals/lookup' && request.method === 'GET') {
+        const name = url.searchParams.get('name');
+        const issn = url.searchParams.get('issn');
+        return await lookupJournal(name, issn, env);
+      }
+
+      // POST /mhamba/projects - Create project
+      if (path === '/mhamba/projects' && request.method === 'POST') {
+        return await createMhambaProject(request, env);
+      }
+
+      // GET /mhamba/projects - List projects
+      if (path === '/mhamba/projects' && request.method === 'GET') {
+        const userId = url.searchParams.get('userId');
+        if (!userId) {
+          return jsonResponse({ error: 'userId required' }, 400);
+        }
+        return await listMhambaProjects(userId, env);
+      }
+
+      // GET /mhamba/projects/:id - Get project with papers
+      const mhambaProjectMatch = path.match(/^\/mhamba\/projects\/([^/]+)$/);
+      if (mhambaProjectMatch && request.method === 'GET') {
+        return await getMhambaProject(mhambaProjectMatch[1], env);
+      }
+
+      // DELETE /mhamba/projects/:id - Delete project
+      if (mhambaProjectMatch && request.method === 'DELETE') {
+        return await deleteMhambaProject(mhambaProjectMatch[1], env);
+      }
+
+      // POST /mhamba/projects/:id/papers - Add papers to project
+      const mhambaPapersMatch = path.match(/^\/mhamba\/projects\/([^/]+)\/papers$/);
+      if (mhambaPapersMatch && request.method === 'POST') {
+        return await addPapersToProject(mhambaPapersMatch[1], request, env);
+      }
+
+      // DELETE /mhamba/projects/:id/papers - Remove papers from project
+      if (mhambaPapersMatch && request.method === 'DELETE') {
+        return await removePapersFromProject(mhambaPapersMatch[1], request, env);
+      }
+
+      // POST /mhamba/export - Export papers
+      if (path === '/mhamba/export' && request.method === 'POST') {
+        return await exportMhambaPapers(request, env);
+      }
+
+      // GET /mhamba/health
+      if (path === '/mhamba/health') {
+        return jsonResponse({
+          status: 'ok',
+          service: 'mhamba',
+          timestamp: new Date().toISOString()
         });
       }
 
@@ -1299,4 +1861,818 @@ async function exportScreeningResults(
     console.error('Export error:', error);
     return jsonResponse({ error: 'Failed to export results' }, 500);
   }
+}
+
+// ============================================
+// MHA/MBA Handlers
+// ============================================
+
+// Main search handler for MHA/MBA
+async function handleMhambaSearch(
+  body: MhambaSearchRequest,
+  env: Env
+): Promise<Response> {
+  const {
+    query,
+    sources = ['openalex', 'crossref', 'semantic_scholar'],
+    maxResults = 100,
+    userId,
+    projectId,
+    minJournalTier
+  } = body;
+
+  if (!query) {
+    return jsonResponse({ error: 'Missing query' }, 400);
+  }
+
+  const supabase = getSupabase(env);
+
+  // Execute searches in parallel
+  const searchPromises: Promise<MhambaSearchResult>[] = [];
+
+  for (const source of sources) {
+    switch (source) {
+      case 'openalex':
+        searchPromises.push(searchOpenAlexBusiness(query, maxResults));
+        break;
+      case 'crossref':
+        searchPromises.push(searchCrossref(query, maxResults));
+        break;
+      case 'semantic_scholar':
+        searchPromises.push(searchSemanticScholarBusiness(query, maxResults));
+        break;
+      case 'core':
+        searchPromises.push(searchCORE(query, maxResults));
+        break;
+      case 'google_scholar':
+        searchPromises.push(searchGoogleScholar(query, maxResults, env.APIFY_API_KEY));
+        break;
+      case 'ssrn':
+        searchPromises.push(searchSSRN(query, maxResults, env.APIFY_API_KEY));
+        break;
+    }
+  }
+
+  const results = await Promise.all(searchPromises);
+
+  // Deduplicate papers
+  const { unique, duplicates, stats } = deduplicateMhambaPapers(results);
+
+  // Enrich with journal rankings
+  const enrichedPapers = await enrichWithJournalRankings(unique, supabase);
+
+  // Filter by tier if specified
+  let finalPapers = enrichedPapers;
+  if (minJournalTier) {
+    finalPapers = enrichedPapers.filter(p => !p.journal_tier || p.journal_tier <= minJournalTier);
+  }
+
+  // Sort by tier (best first), then by citations
+  finalPapers.sort((a, b) => {
+    const tierA = a.journal_tier || 6;
+    const tierB = b.journal_tier || 6;
+    if (tierA !== tierB) return tierA - tierB;
+    return (b.citation_count || 0) - (a.citation_count || 0);
+  });
+
+  // Save search run if projectId provided
+  if (projectId && userId) {
+    try {
+      await supabase.from('mhamba_search_runs').insert({
+        project_id: projectId,
+        user_id: userId,
+        query,
+        sources_used: sources,
+        total_results: stats.totalFound,
+        unique_results: stats.uniqueCount,
+        duplicates_removed: stats.duplicatesRemoved
+      });
+    } catch (e) {
+      console.error('Failed to save search run:', e);
+    }
+  }
+
+  const totalSearchTime = results.reduce((sum, r) => sum + r.searchTime, 0);
+
+  return jsonResponse({
+    query,
+    sources,
+    results: {
+      papers: finalPapers,
+      totalUnique: finalPapers.length,
+      totalFound: stats.totalFound,
+      duplicatesRemoved: stats.duplicatesRemoved
+    },
+    perSource: results.map(r => ({
+      source: r.source,
+      count: r.papers.length,
+      totalAvailable: r.totalCount,
+      searchTime: r.searchTime,
+      error: r.error
+    })),
+    stats: {
+      ...stats,
+      totalSearchTime,
+      timestamp: new Date().toISOString()
+    }
+  });
+}
+
+// Deduplicate MHA/MBA papers
+function deduplicateMhambaPapers(results: MhambaSearchResult[]): {
+  unique: MhambaPaper[];
+  duplicates: MhambaPaper[];
+  stats: {
+    totalFound: number;
+    duplicatesRemoved: number;
+    uniqueCount: number;
+    bySource: Record<string, number>;
+  };
+} {
+  const allPapers: MhambaPaper[] = results.flatMap(r => r.papers);
+  const unique: MhambaPaper[] = [];
+  const duplicates: MhambaPaper[] = [];
+  const seenDOIs = new Set<string>();
+  const seenTitles = new Map<string, MhambaPaper>();
+  const bySource: Record<string, number> = {};
+
+  for (const paper of allPapers) {
+    let isDuplicate = false;
+
+    // Check DOI first
+    if (paper.doi) {
+      const normalizedDOI = paper.doi.toLowerCase();
+      if (seenDOIs.has(normalizedDOI)) {
+        isDuplicate = true;
+      } else {
+        seenDOIs.add(normalizedDOI);
+      }
+    }
+
+    // Check title similarity
+    if (!isDuplicate && paper.title) {
+      const normalizedTitle = normalizeTitle(paper.title);
+      for (const [existingTitle] of seenTitles) {
+        const similarity = calculateSimilarity(normalizedTitle, existingTitle);
+        if (similarity >= 0.85) {
+          isDuplicate = true;
+          break;
+        }
+      }
+      if (!isDuplicate) {
+        seenTitles.set(normalizedTitle, paper);
+      }
+    }
+
+    if (isDuplicate) {
+      duplicates.push(paper);
+    } else {
+      unique.push(paper);
+      bySource[paper.source] = (bySource[paper.source] || 0) + 1;
+    }
+  }
+
+  return {
+    unique,
+    duplicates,
+    stats: {
+      totalFound: allPapers.length,
+      duplicatesRemoved: duplicates.length,
+      uniqueCount: unique.length,
+      bySource
+    }
+  };
+}
+
+// Enrich papers with journal rankings from database
+async function enrichWithJournalRankings(
+  papers: MhambaPaper[],
+  supabase: any
+): Promise<MhambaPaper[]> {
+  // Collect all unique journal names and ISSNs
+  const journalNames = new Set<string>();
+  const issns = new Set<string>();
+
+  for (const paper of papers) {
+    if (paper.journal) journalNames.add(paper.journal.toLowerCase());
+    if (paper.journal_issn) issns.add(paper.journal_issn);
+  }
+
+  if (journalNames.size === 0 && issns.size === 0) {
+    return papers;
+  }
+
+  try {
+    // Query journal rankings
+    let query = supabase.from('mhamba_journal_rankings').select('*');
+
+    // Build OR conditions for journals
+    const conditions: string[] = [];
+    if (journalNames.size > 0) {
+      conditions.push(`journal_name_normalized.in.(${Array.from(journalNames).map(n => `"${n}"`).join(',')})`);
+    }
+    if (issns.size > 0) {
+      conditions.push(`issn.in.(${Array.from(issns).join(',')})`);
+    }
+
+    const { data: rankings, error } = await query.or(conditions.join(','));
+
+    if (error || !rankings) {
+      console.error('Failed to fetch journal rankings:', error);
+      return papers;
+    }
+
+    // Create lookup maps
+    const rankingByName = new Map<string, any>();
+    const rankingByISSN = new Map<string, any>();
+
+    for (const ranking of rankings) {
+      if (ranking.journal_name_normalized) {
+        rankingByName.set(ranking.journal_name_normalized.toLowerCase(), ranking);
+      }
+      if (ranking.issn) {
+        rankingByISSN.set(ranking.issn, ranking);
+      }
+    }
+
+    // Enrich papers
+    return papers.map(paper => {
+      let ranking = null;
+
+      // Try ISSN first (more reliable)
+      if (paper.journal_issn) {
+        ranking = rankingByISSN.get(paper.journal_issn);
+      }
+
+      // Fallback to name
+      if (!ranking && paper.journal) {
+        ranking = rankingByName.get(paper.journal.toLowerCase());
+      }
+
+      if (ranking) {
+        return {
+          ...paper,
+          journal_tier: ranking.tier,
+          abs_rating: ranking.abs_rating,
+          abdc_rating: ranking.abdc_rating,
+          is_ft50: ranking.is_ft50
+        };
+      }
+
+      return paper;
+    });
+  } catch (e) {
+    console.error('Error enriching with journal rankings:', e);
+    return papers;
+  }
+}
+
+// List journal rankings
+async function listJournalRankings(
+  tier: string | null,
+  search: string | null,
+  limit: number,
+  env: Env
+): Promise<Response> {
+  const supabase = getSupabase(env);
+
+  try {
+    let query = supabase
+      .from('mhamba_journal_rankings')
+      .select('*')
+      .order('tier', { ascending: true })
+      .order('journal_name', { ascending: true })
+      .limit(limit);
+
+    if (tier) {
+      query = query.eq('tier', parseInt(tier));
+    }
+
+    if (search) {
+      query = query.ilike('journal_name', `%${search}%`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return jsonResponse({
+      journals: data || [],
+      count: data?.length || 0
+    });
+  } catch (error) {
+    console.error('List journals error:', error);
+    return jsonResponse({ error: 'Failed to list journals' }, 500);
+  }
+}
+
+// Upsert journal ranking
+async function upsertJournalRanking(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  const body = await request.json() as {
+    journal_name: string;
+    issn?: string;
+    abs_rating?: string;
+    abdc_rating?: string;
+    is_ft50?: boolean;
+    tier?: number;
+    subject_areas?: string[];
+  };
+
+  if (!body.journal_name) {
+    return jsonResponse({ error: 'journal_name required' }, 400);
+  }
+
+  const supabase = getSupabase(env);
+
+  try {
+    const { data, error } = await supabase
+      .from('mhamba_journal_rankings')
+      .upsert({
+        journal_name: body.journal_name,
+        journal_name_normalized: body.journal_name.toLowerCase().trim(),
+        issn: body.issn,
+        abs_rating: body.abs_rating,
+        abdc_rating: body.abdc_rating,
+        is_ft50: body.is_ft50 || false,
+        tier: body.tier || 5,
+        subject_areas: body.subject_areas
+      }, {
+        onConflict: 'journal_name_normalized'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return jsonResponse({ success: true, journal: data });
+  } catch (error) {
+    console.error('Upsert journal error:', error);
+    return jsonResponse({ error: 'Failed to save journal' }, 500);
+  }
+}
+
+// Lookup journal by name or ISSN
+async function lookupJournal(
+  name: string | null,
+  issn: string | null,
+  env: Env
+): Promise<Response> {
+  if (!name && !issn) {
+    return jsonResponse({ error: 'name or issn required' }, 400);
+  }
+
+  const supabase = getSupabase(env);
+
+  try {
+    let query = supabase.from('mhamba_journal_rankings').select('*');
+
+    if (issn) {
+      query = query.eq('issn', issn);
+    } else if (name) {
+      query = query.ilike('journal_name', `%${name}%`);
+    }
+
+    const { data, error } = await query.limit(10);
+
+    if (error) throw error;
+
+    return jsonResponse({
+      journals: data || [],
+      found: (data?.length || 0) > 0
+    });
+  } catch (error) {
+    console.error('Lookup journal error:', error);
+    return jsonResponse({ error: 'Failed to lookup journal' }, 500);
+  }
+}
+
+// Create MHA/MBA project
+async function createMhambaProject(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  const body = await request.json() as {
+    name: string;
+    description?: string;
+    userId: string;
+  };
+
+  if (!body.name || !body.userId) {
+    return jsonResponse({ error: 'name and userId required' }, 400);
+  }
+
+  const supabase = getSupabase(env);
+
+  try {
+    const { data, error } = await supabase
+      .from('mhamba_projects')
+      .insert({
+        name: body.name,
+        description: body.description,
+        user_id: body.userId,
+        status: 'active'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return jsonResponse({ success: true, project: data });
+  } catch (error) {
+    console.error('Create project error:', error);
+    return jsonResponse({ error: 'Failed to create project' }, 500);
+  }
+}
+
+// List MHA/MBA projects
+async function listMhambaProjects(
+  userId: string,
+  env: Env
+): Promise<Response> {
+  const supabase = getSupabase(env);
+
+  try {
+    const { data, error } = await supabase
+      .from('mhamba_projects')
+      .select(`
+        *,
+        mhamba_papers (count),
+        mhamba_search_runs (count)
+      `)
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+
+    return jsonResponse({
+      projects: (data || []).map((p: any) => ({
+        ...p,
+        paper_count: p.mhamba_papers?.[0]?.count || 0,
+        search_count: p.mhamba_search_runs?.[0]?.count || 0
+      }))
+    });
+  } catch (error) {
+    console.error('List projects error:', error);
+    return jsonResponse({ error: 'Failed to list projects' }, 500);
+  }
+}
+
+// Get MHA/MBA project with papers
+async function getMhambaProject(
+  projectId: string,
+  env: Env
+): Promise<Response> {
+  const supabase = getSupabase(env);
+
+  try {
+    // Get project
+    const { data: project, error: projectError } = await supabase
+      .from('mhamba_projects')
+      .select('*')
+      .eq('id', projectId)
+      .single();
+
+    if (projectError) {
+      if (projectError.code === 'PGRST116') {
+        return jsonResponse({ error: 'Project not found' }, 404);
+      }
+      throw projectError;
+    }
+
+    // Get papers
+    const { data: papers, error: papersError } = await supabase
+      .from('mhamba_papers')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false });
+
+    if (papersError) throw papersError;
+
+    // Get search runs
+    const { data: searchRuns, error: searchError } = await supabase
+      .from('mhamba_search_runs')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (searchError) throw searchError;
+
+    return jsonResponse({
+      project,
+      papers: papers || [],
+      searchRuns: searchRuns || [],
+      stats: {
+        totalPapers: papers?.length || 0,
+        byTier: countByTier(papers || []),
+        bySource: countBySource(papers || [])
+      }
+    });
+  } catch (error) {
+    console.error('Get project error:', error);
+    return jsonResponse({ error: 'Failed to get project' }, 500);
+  }
+}
+
+// Helper to count papers by tier
+function countByTier(papers: any[]): Record<number, number> {
+  const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 0: 0 };
+  for (const p of papers) {
+    const tier = p.journal_tier || 0;
+    counts[tier] = (counts[tier] || 0) + 1;
+  }
+  return counts;
+}
+
+// Helper to count papers by source
+function countBySource(papers: any[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const p of papers) {
+    counts[p.source] = (counts[p.source] || 0) + 1;
+  }
+  return counts;
+}
+
+// Delete MHA/MBA project
+async function deleteMhambaProject(
+  projectId: string,
+  env: Env
+): Promise<Response> {
+  const supabase = getSupabase(env);
+
+  try {
+    // Delete papers first (cascade should handle this but being explicit)
+    await supabase
+      .from('mhamba_papers')
+      .delete()
+      .eq('project_id', projectId);
+
+    await supabase
+      .from('mhamba_search_runs')
+      .delete()
+      .eq('project_id', projectId);
+
+    const { error } = await supabase
+      .from('mhamba_projects')
+      .delete()
+      .eq('id', projectId);
+
+    if (error) throw error;
+
+    return jsonResponse({ success: true });
+  } catch (error) {
+    console.error('Delete project error:', error);
+    return jsonResponse({ error: 'Failed to delete project' }, 500);
+  }
+}
+
+// Add papers to project
+async function addPapersToProject(
+  projectId: string,
+  request: Request,
+  env: Env
+): Promise<Response> {
+  const body = await request.json() as {
+    papers: MhambaPaper[];
+    userId: string;
+  };
+
+  if (!body.papers || body.papers.length === 0) {
+    return jsonResponse({ error: 'No papers provided' }, 400);
+  }
+
+  const supabase = getSupabase(env);
+
+  try {
+    const papersToInsert = body.papers.map(paper => ({
+      project_id: projectId,
+      user_id: body.userId,
+      doi: paper.doi,
+      title: paper.title,
+      abstract: paper.abstract,
+      authors: JSON.stringify(paper.authors),
+      journal: paper.journal,
+      journal_issn: paper.journal_issn,
+      year: paper.year,
+      url: paper.url,
+      source: paper.source,
+      citation_count: paper.citation_count,
+      publication_type: paper.publication_type,
+      journal_tier: paper.journal_tier,
+      abs_rating: paper.abs_rating,
+      abdc_rating: paper.abdc_rating,
+      is_ft50: paper.is_ft50
+    }));
+
+    // Insert in chunks
+    const chunkSize = 100;
+    let insertedCount = 0;
+
+    for (let i = 0; i < papersToInsert.length; i += chunkSize) {
+      const chunk = papersToInsert.slice(i, i + chunkSize);
+      const { error } = await supabase
+        .from('mhamba_papers')
+        .insert(chunk);
+
+      if (error) throw error;
+      insertedCount += chunk.length;
+    }
+
+    // Update project timestamp
+    await supabase
+      .from('mhamba_projects')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', projectId);
+
+    return jsonResponse({
+      success: true,
+      inserted: insertedCount
+    });
+  } catch (error) {
+    console.error('Add papers error:', error);
+    return jsonResponse({ error: 'Failed to add papers' }, 500);
+  }
+}
+
+// Remove papers from project
+async function removePapersFromProject(
+  projectId: string,
+  request: Request,
+  env: Env
+): Promise<Response> {
+  const body = await request.json() as {
+    paperIds: string[];
+  };
+
+  if (!body.paperIds || body.paperIds.length === 0) {
+    return jsonResponse({ error: 'No paper IDs provided' }, 400);
+  }
+
+  const supabase = getSupabase(env);
+
+  try {
+    const { error } = await supabase
+      .from('mhamba_papers')
+      .delete()
+      .eq('project_id', projectId)
+      .in('id', body.paperIds);
+
+    if (error) throw error;
+
+    return jsonResponse({
+      success: true,
+      removed: body.paperIds.length
+    });
+  } catch (error) {
+    console.error('Remove papers error:', error);
+    return jsonResponse({ error: 'Failed to remove papers' }, 500);
+  }
+}
+
+// Export MHA/MBA papers
+async function exportMhambaPapers(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  const body = await request.json() as {
+    projectId?: string;
+    papers?: MhambaPaper[];
+    format: 'csv' | 'ris' | 'bibtex';
+    filter?: {
+      minTier?: number;
+      sources?: string[];
+    };
+  };
+
+  const supabase = getSupabase(env);
+  let papers: any[] = body.papers || [];
+
+  // If projectId provided, fetch papers from DB
+  if (body.projectId && papers.length === 0) {
+    const { data, error } = await supabase
+      .from('mhamba_papers')
+      .select('*')
+      .eq('project_id', body.projectId);
+
+    if (error) {
+      return jsonResponse({ error: 'Failed to fetch papers' }, 500);
+    }
+    papers = data || [];
+  }
+
+  // Apply filters
+  if (body.filter?.minTier) {
+    papers = papers.filter(p => !p.journal_tier || p.journal_tier <= body.filter!.minTier!);
+  }
+  if (body.filter?.sources) {
+    papers = papers.filter(p => body.filter!.sources!.includes(p.source));
+  }
+
+  // Format output
+  if (body.format === 'csv') {
+    const headers = [
+      'title', 'abstract', 'authors', 'journal', 'year', 'doi', 'url',
+      'source', 'citations', 'tier', 'abs_rating', 'abdc_rating', 'ft50'
+    ];
+
+    const rows = papers.map((p: any) => {
+      let authorsStr = '';
+      if (typeof p.authors === 'string') {
+        try { authorsStr = JSON.parse(p.authors).map((a: any) => a.name).join('; '); }
+        catch { authorsStr = p.authors; }
+      } else if (Array.isArray(p.authors)) {
+        authorsStr = p.authors.map((a: any) => a.name).join('; ');
+      }
+
+      return [
+        escapeCSV(p.title || ''),
+        escapeCSV(p.abstract || ''),
+        escapeCSV(authorsStr),
+        escapeCSV(p.journal || ''),
+        p.year?.toString() || '',
+        escapeCSV(p.doi || ''),
+        escapeCSV(p.url || ''),
+        p.source || '',
+        p.citation_count?.toString() || '',
+        p.journal_tier?.toString() || '',
+        p.abs_rating || '',
+        p.abdc_rating || '',
+        p.is_ft50 ? 'Yes' : ''
+      ].join(',');
+    });
+
+    return new Response([headers.join(','), ...rows].join('\n'), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="mhamba_papers.csv"'
+      }
+    });
+  }
+
+  if (body.format === 'ris') {
+    const ris = papers.map((p: any) => {
+      const lines = ['TY  - JOUR', `TI  - ${p.title}`];
+      if (p.abstract) lines.push(`AB  - ${p.abstract}`);
+      if (p.journal) lines.push(`JO  - ${p.journal}`);
+      if (p.year) lines.push(`PY  - ${p.year}`);
+      if (p.doi) lines.push(`DO  - ${p.doi}`);
+      if (p.url) lines.push(`UR  - ${p.url}`);
+      if (p.journal_tier) lines.push(`N1  - Journal Tier: ${p.journal_tier}`);
+      if (p.abs_rating) lines.push(`N1  - ABS Rating: ${p.abs_rating}`);
+
+      let authors: any[] = [];
+      if (typeof p.authors === 'string') {
+        try { authors = JSON.parse(p.authors); } catch { }
+      } else if (Array.isArray(p.authors)) {
+        authors = p.authors;
+      }
+      authors.forEach((a: any) => lines.push(`AU  - ${a.name || a}`));
+
+      lines.push('ER  - ');
+      return lines.join('\n');
+    }).join('\n');
+
+    return new Response(ris, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/x-research-info-systems',
+        'Content-Disposition': 'attachment; filename="mhamba_papers.ris"'
+      }
+    });
+  }
+
+  if (body.format === 'bibtex') {
+    const bibtex = papers.map((p: any, i: number) => {
+      const key = p.doi?.replace(/[^a-zA-Z0-9]/g, '') || `paper${i + 1}`;
+      let authors: string[] = [];
+      if (typeof p.authors === 'string') {
+        try { authors = JSON.parse(p.authors).map((a: any) => a.name); } catch { }
+      } else if (Array.isArray(p.authors)) {
+        authors = p.authors.map((a: any) => a.name);
+      }
+
+      return `@article{${key},
+  title = {${p.title || ''}},
+  author = {${authors.join(' and ')}},
+  journal = {${p.journal || ''}},
+  year = {${p.year || ''}},
+  doi = {${p.doi || ''}},
+  url = {${p.url || ''}}
+}`;
+    }).join('\n\n');
+
+    return new Response(bibtex, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/x-bibtex',
+        'Content-Disposition': 'attachment; filename="mhamba_papers.bib"'
+      }
+    });
+  }
+
+  return jsonResponse({ error: 'Invalid format. Use "csv", "ris", or "bibtex"' }, 400);
 }

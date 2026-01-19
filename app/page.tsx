@@ -18,10 +18,15 @@ import {
   Bell,
   Link as LinkIcon,
   FlaskConical,
+  Briefcase,
   ArrowRight,
   User,
   LogOut,
-  LogIn
+  LogIn,
+  BookOpen,
+  TrendingUp,
+  PieChart,
+  Users
 } from 'lucide-react';
 
 function OAuthHandler() {
@@ -34,7 +39,7 @@ function OAuthHandler() {
       if (typeof window !== 'undefined') {
         const hash = window.location.hash;
         const code = searchParams.get('code');
-        
+
         // If we have OAuth data, redirect to unified callback
         if (hash || code) {
           const currentUrl = window.location.href;
@@ -55,14 +60,14 @@ function HomePageContent() {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
 
-  // Redirect logged-in users to research dashboard
+  // Redirect logged-in users to program selector
   useEffect(() => {
     if (user && !loading && typeof window !== 'undefined') {
       const currentPath = window.location.pathname;
 
       // Only redirect if we're on the homepage
       if (currentPath === '/' || currentPath === '') {
-        router.replace('/research');
+        router.replace('/select-program');
       }
     }
   }, [user, loading, router]);
@@ -72,87 +77,22 @@ function HomePageContent() {
     router.push('/');
   };
 
-  const researchTools = [
-    {
-      icon: Search,
-      title: "Literature Search",
-      description: "Search PubMed, OpenAlex, and medRxiv simultaneously. Export in RIS format.",
-      color: "text-blue-400",
-      bg: "bg-blue-500/10",
-      border: "border-blue-500/20"
-    },
-    {
-      icon: GitMerge,
-      title: "Deduplication",
-      description: "Remove duplicate papers across databases with smart matching algorithms.",
-      color: "text-purple-400",
-      bg: "bg-purple-500/10",
-      border: "border-purple-500/20"
-    },
-    {
-      icon: CheckSquare,
-      title: "Screening",
-      description: "Title/abstract and full-text screening with conflict resolution.",
-      color: "text-green-400",
-      bg: "bg-green-500/10",
-      border: "border-green-500/20"
-    },
-    {
-      icon: Table,
-      title: "Data Extraction",
-      description: "Structured forms for extracting study characteristics and outcomes.",
-      color: "text-orange-400",
-      bg: "bg-orange-500/10",
-      border: "border-orange-500/20"
-    },
-    {
-      icon: Scale,
-      title: "Risk of Bias",
-      description: "ROB 2.0 and ROBINS-I assessment tools with domain-level judgments.",
-      color: "text-red-400",
-      bg: "bg-red-500/10",
-      border: "border-red-500/20"
-    },
-    {
-      icon: GitBranch,
-      title: "PRISMA Generator",
-      description: "Auto-generate PRISMA 2020 flow diagrams from your data.",
-      color: "text-teal-400",
-      bg: "bg-teal-500/10",
-      border: "border-teal-500/20"
-    },
-    {
-      icon: BarChart2,
-      title: "Meta-Analysis",
-      description: "Forest plots, heterogeneity, and subgroup analysis.",
-      color: "text-cyan-400",
-      bg: "bg-cyan-500/10",
-      border: "border-cyan-500/20"
-    },
-    {
-      icon: FileText,
-      title: "GRADE Tables",
-      description: "Evidence certainty assessment and Summary of Findings tables.",
-      color: "text-yellow-400",
-      bg: "bg-yellow-500/10",
-      border: "border-yellow-500/20"
-    },
-    {
-      icon: Bell,
-      title: "Search Monitor",
-      description: "Alerts for new publications matching your criteria.",
-      color: "text-pink-400",
-      bg: "bg-pink-500/10",
-      border: "border-pink-500/20"
-    },
-    {
-      icon: LinkIcon,
-      title: "Citation Chaining",
-      description: "Forward and backward citation tracking for snowball searches.",
-      color: "text-indigo-400",
-      bg: "bg-indigo-500/10",
-      border: "border-indigo-500/20"
-    }
+  // MPH Tools
+  const mphTools = [
+    { icon: Search, title: "Literature Search", description: "PubMed, OpenAlex, medRxiv" },
+    { icon: GitMerge, title: "Deduplication", description: "Smart duplicate removal" },
+    { icon: CheckSquare, title: "Screening", description: "Title/abstract screening" },
+    { icon: Scale, title: "Risk of Bias", description: "ROB 2.0, ROBINS-I, NOS" },
+    { icon: BarChart2, title: "Meta-Analysis", description: "Forest & funnel plots" },
+    { icon: GitBranch, title: "PRISMA Generator", description: "PRISMA 2020 diagrams" },
+  ];
+
+  // MHA/MBA Tools (Coming Soon)
+  const mhambaTools = [
+    { icon: BookOpen, title: "Business Literature", description: "SSRN, JSTOR, ProQuest" },
+    { icon: TrendingUp, title: "Case Study Analysis", description: "Structured frameworks" },
+    { icon: PieChart, title: "Market Research", description: "Industry analysis tools" },
+    { icon: Users, title: "Stakeholder Mapping", description: "Relationship visualization" },
   ];
 
   return (
@@ -166,9 +106,9 @@ function HomePageContent() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center shadow-lg shadow-teal-900/20">
-              <span className="text-white font-bold text-sm">MS</span>
+              <span className="text-white font-bold text-sm">MA</span>
             </div>
-            <span className="font-semibold text-white tracking-tight">MSDrills</span>
+            <span className="font-semibold text-white tracking-tight">Mastering Academia</span>
           </div>
           <div className="flex items-center gap-4 text-sm font-medium">
             {loading ? (
@@ -180,7 +120,7 @@ function HomePageContent() {
                   <span className="hidden sm:inline">{user.email}</span>
                 </div>
                 <Link
-                  href="/research"
+                  href="/select-program"
                   className="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors"
                 >
                   Dashboard
@@ -213,28 +153,27 @@ function HomePageContent() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6 text-center relative overflow-hidden">
+      <section className="pt-32 pb-16 px-6 text-center relative overflow-hidden">
         {/* Background Gradients */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-teal-500/10 rounded-full blur-3xl -z-10 opacity-30"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-3xl -z-10 opacity-20"></div>
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-teal-500/10 rounded-full blur-3xl -z-10 opacity-20"></div>
+        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl -z-10 opacity-20"></div>
 
         <div className="max-w-4xl mx-auto">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-sm font-medium mb-8">
-            <FlaskConical size={16} />
-            Research Tools
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-sm font-medium mb-8">
+            Academic Research Tools
           </div>
 
           {/* Headline */}
           <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight leading-tight">
-            Systematic Review <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400">Made Simple</span>
+            Research Tools for <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-purple-400">Graduate Students</span>
           </h1>
 
           {/* Subhead */}
           <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            10 integrated tools for literature search, screening, meta-analysis, and PRISMA compliance.
-            Built for rigorous academic research.
+            Comprehensive research tools tailored for MPH and MHA/MBA programs.
+            Literature search, systematic reviews, case analysis, and more.
           </p>
 
           {/* CTA Buttons */}
@@ -253,67 +192,145 @@ function HomePageContent() {
               Sign In
             </Link>
           </div>
-
-          {/* Feature Pills */}
-          <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-slate-400">
-            <span className="flex items-center gap-2">
-              <span className="text-teal-400">✓</span> Project Management
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="text-teal-400">✓</span> Team Collaboration
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="text-teal-400">✓</span> PRISMA Compliant
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="text-teal-400">✓</span> Export to RIS/CSV
-            </span>
-          </div>
         </div>
       </section>
 
-      {/* Tools Grid */}
-      <section className="py-20 px-6 bg-slate-900/50 border-y border-slate-800">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {researchTools.map((tool) => (
-              <div
-                key={tool.title}
-                className="group p-6 rounded-2xl bg-slate-900 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/50 transition-all duration-300"
-              >
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${tool.bg} ${tool.border} border`}>
-                  <tool.icon className={`w-6 h-6 ${tool.color}`} />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-teal-400 transition-colors">
-                  {tool.title}
-                </h3>
-                <p className="text-slate-400 text-sm leading-relaxed">
-                  {tool.description}
-                </p>
+      {/* Program Cards Section */}
+      <section className="py-16 px-6">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl font-bold text-white text-center mb-4">Choose Your Program</h2>
+          <p className="text-slate-400 text-center mb-12 max-w-xl mx-auto">
+            Access specialized research tools designed for your academic discipline
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* MPH Card */}
+            <div className="group relative p-8 rounded-2xl bg-slate-900 border border-slate-800 hover:border-teal-500/50 transition-all duration-300">
+              <div className="w-14 h-14 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-6">
+                <FlaskConical className="w-7 h-7 text-teal-400" />
               </div>
-            ))}
+
+              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-teal-400 transition-colors">
+                MPH
+              </h3>
+              <p className="text-slate-500 text-sm mb-4">Master of Public Health</p>
+
+              <p className="text-slate-400 mb-6">
+                Systematic review and meta-analysis tools for epidemiology and public health research.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {mphTools.map((tool) => (
+                  <div key={tool.title} className="flex items-center gap-2 text-sm text-slate-400">
+                    <tool.icon className="w-4 h-4 text-teal-400" />
+                    <span>{tool.title}</span>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                href="/mph"
+                className="inline-flex items-center gap-2 text-teal-400 font-medium hover:gap-3 transition-all"
+              >
+                Explore MPH Tools
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+
+              <div className="absolute top-6 right-6 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs font-medium">
+                10 Tools
+              </div>
+            </div>
+
+            {/* MHA/MBA Card */}
+            <div className="group relative p-8 rounded-2xl bg-slate-900 border border-slate-800 hover:border-purple-500/50 transition-all duration-300">
+              <div className="w-14 h-14 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-6">
+                <Briefcase className="w-7 h-7 text-purple-400" />
+              </div>
+
+              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">
+                MHA/MBA
+              </h3>
+              <p className="text-slate-500 text-sm mb-4">Master of Health Administration / Business Administration</p>
+
+              <p className="text-slate-400 mb-6">
+                Business and healthcare management research tools for organizational analysis and strategy.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {mhambaTools.map((tool) => (
+                  <div key={tool.title} className="flex items-center gap-2 text-sm text-slate-500">
+                    <tool.icon className="w-4 h-4 text-purple-400/50" />
+                    <span>{tool.title}</span>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                href="/mhamba"
+                className="inline-flex items-center gap-2 text-purple-400 font-medium hover:gap-3 transition-all"
+              >
+                View MHA/MBA Tools
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+
+              <div className="absolute top-6 right-6 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-medium">
+                Coming Soon
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-20 px-6 border-b border-slate-800 bg-slate-950">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <div>
-            <div className="text-4xl font-bold text-white mb-1">10</div>
-            <div className="text-sm text-slate-500 uppercase tracking-wider font-medium">Research Tools</div>
+      {/* Features Section */}
+      <section className="py-16 px-6 bg-slate-900/50 border-y border-slate-800">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl font-bold text-white text-center mb-12">Why Mastering Academia?</h2>
+
+          <div className="grid md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-4xl font-bold text-white mb-2">10+</div>
+              <div className="text-sm text-slate-400">Research Tools</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-white mb-2">1B+</div>
+              <div className="text-sm text-slate-400">Papers Searchable</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-white mb-2">Free</div>
+              <div className="text-sm text-slate-400">To Use</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-white mb-2">PRISMA</div>
+              <div className="text-sm text-slate-400">Compliant</div>
+            </div>
           </div>
-          <div>
-            <div className="text-4xl font-bold text-white mb-1">900+</div>
-            <div className="text-sm text-slate-500 uppercase tracking-wider font-medium">Videos Created</div>
-          </div>
-          <div>
-            <div className="text-4xl font-bold text-white mb-1">Free</div>
-            <div className="text-sm text-slate-500 uppercase tracking-wider font-medium">To Use</div>
-          </div>
-          <div>
-            <div className="text-4xl font-bold text-white mb-1">∞</div>
-            <div className="text-sm text-slate-500 uppercase tracking-wider font-medium">Possibilities</div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to Start Your Research?
+          </h2>
+          <p className="text-slate-400 mb-8">
+            Join graduate students using Mastering Academia for their academic research projects.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/signup"
+              className="px-8 py-4 bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold rounded-xl transition-all"
+            >
+              Create Free Account
+            </Link>
+            <Link
+              href="https://youtube.com/@MasteringPublicHealth"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 border border-slate-700 hover:border-slate-500 text-white font-medium rounded-xl transition-all"
+            >
+              Watch Tutorials
+            </Link>
           </div>
         </div>
       </section>

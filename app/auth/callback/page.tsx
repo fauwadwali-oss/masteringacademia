@@ -54,7 +54,7 @@ function AuthCallbackContent() {
                 if (type === 'signup') {
                     setStatus('success');
                     setMessage('Email verified successfully! Redirecting...');
-                    setTimeout(() => router.replace('/research'), 2000);
+                    setTimeout(() => router.replace('/select-program'), 2000);
                 } else if (type === 'recovery') {
                     // Password recovery flow
                     setStatus('success');
@@ -64,7 +64,7 @@ function AuthCallbackContent() {
                     // Regular OAuth login
                     setStatus('success');
                     setMessage('Signed in successfully! Redirecting...');
-                    setTimeout(() => router.replace('/research'), 1500);
+                    setTimeout(() => router.replace('/select-program'), 1500);
                 }
                 return;
             }
@@ -82,7 +82,7 @@ function AuthCallbackContent() {
 
                 setStatus('success');
                 setMessage('Signed in successfully! Redirecting...');
-                setTimeout(() => router.replace('/research'), 1500);
+                setTimeout(() => router.replace('/select-program'), 1500);
                 return;
             }
 
@@ -91,7 +91,7 @@ function AuthCallbackContent() {
             if (session) {
                 setStatus('success');
                 setMessage('Already signed in. Redirecting...');
-                setTimeout(() => router.replace('/research'), 1000);
+                setTimeout(() => router.replace('/select-program'), 1000);
                 return;
             }
 

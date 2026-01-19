@@ -44,7 +44,7 @@ function LoginForm() {
 
             // Only redirect if we're on the login page
             if (currentPath === '/login') {
-                const redirect = searchParams.get('redirect') || '/research';
+                const redirect = searchParams.get('redirect') || '/select-program';
                 router.replace(redirect);
             }
         }
@@ -72,8 +72,8 @@ function LoginForm() {
                 return;
             }
 
-            // Redirect to research page
-            const redirect = searchParams.get('redirect') || '/research';
+            // Redirect to program selector
+            const redirect = searchParams.get('redirect') || '/select-program';
             router.replace(redirect);
         } catch (err) {
             setError('An unexpected error occurred. Please try again.');

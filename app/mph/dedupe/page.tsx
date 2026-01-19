@@ -496,7 +496,7 @@ const DeduplicationPage: React.FC = () => {
       {/* Header */}
       <nav className="border-b border-slate-800">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <a href="/research" className="flex items-center gap-2">
+          <a href="/mph" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">MS</span>
             </div>
@@ -504,7 +504,7 @@ const DeduplicationPage: React.FC = () => {
             <span className="text-slate-500">/</span>
             <span className="text-orange-400">Deduplication</span>
           </a>
-          <a href="/research" className="text-slate-400 hover:text-white text-sm">
+          <a href="/mph" className="text-slate-400 hover:text-white text-sm">
             ← All Tools
           </a>
         </div>
