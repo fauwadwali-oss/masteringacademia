@@ -7,7 +7,29 @@ import ResearchHeader from '@/components/ResearchHeader';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
-import { FolderOpen, Plus, ArrowRight, Clock, AlertCircle } from 'lucide-react';
+import {
+  FolderOpen,
+  Plus,
+  ArrowRight,
+  Clock,
+  AlertCircle,
+  Database,
+  Zap,
+  Award,
+  BookOpen,
+  FileSpreadsheet,
+  Download,
+  Rocket,
+  Star,
+  Search,
+  FileText,
+  Target,
+  Activity,
+  Microscope,
+  BarChart3,
+  Users,
+  TrendingUp
+} from 'lucide-react';
 
 // MPH Research Tools Landing Page - Dashboard for logged-in users
 // Route: /mph
@@ -35,13 +57,18 @@ const ToolCard: React.FC<ToolCardProps> = ({
     <a
       href={isAvailable ? href : undefined}
       className={`
-        relative block p-6 rounded-xl border transition-all duration-200
+        relative block p-6 rounded-xl border transition-all duration-300
         ${isAvailable
-          ? 'bg-slate-800/50 border-slate-700 hover:border-violet-500/50 hover:bg-slate-800 cursor-pointer'
+          ? 'bg-gradient-to-br from-slate-900 to-slate-900/50 border-slate-800 hover:border-violet-500/50 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-violet-500/20 cursor-pointer'
           : 'bg-slate-800/30 border-slate-700/50 cursor-default'
         }
       `}
     >
+      {/* Glow Effect */}
+      {isAvailable && (
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500/0 to-violet-500/0 group-hover:from-violet-500/5 group-hover:to-transparent transition-all duration-300"></div>
+      )}
+
       {/* Status Badge */}
       {status === 'coming-soon' && (
         <span className="absolute top-4 right-4 px-2 py-1 text-xs font-medium bg-amber-500/20 text-amber-400 rounded-full">
@@ -52,24 +79,25 @@ const ToolCard: React.FC<ToolCardProps> = ({
       {/* Icon */}
       <div
         className={`
-        w-12 h-12 rounded-lg flex items-center justify-center mb-4
-        ${isAvailable ? 'bg-violet-500/20' : 'bg-slate-700/50'}
+        w-14 h-14 rounded-xl flex items-center justify-center mb-4
+        ${isAvailable ? 'bg-violet-500/20 border border-violet-500/30' : 'bg-slate-700/50'}
+        ${isAvailable ? 'group-hover:scale-110 transition-transform' : ''}
       `}
       >
-        <span className={`text-2xl ${!isAvailable && 'opacity-50'}`}>{icon}</span>
+        <span className={`text-3xl ${!isAvailable && 'opacity-50'}`}>{icon}</span>
       </div>
 
       {/* Content */}
-      <h3 className={`text-lg font-semibold mb-2 ${isAvailable ? 'text-white' : 'text-slate-400'}`}>
+      <h3 className={`text-xl font-bold mb-2 ${isAvailable ? 'text-white' : 'text-slate-400'}`}>
         {title}
       </h3>
-      <p className={`text-sm mb-4 ${isAvailable ? 'text-slate-300' : 'text-slate-500'}`}>
+      <p className={`text-sm mb-4 leading-relaxed ${isAvailable ? 'text-slate-300' : 'text-slate-500'}`}>
         {description}
       </p>
 
       {/* Features List */}
       {features && (
-        <ul className="space-y-1">
+        <ul className="space-y-1.5">
           {features.map((feature, idx) => (
             <li key={idx} className="flex items-center text-xs text-slate-400">
               <svg className="w-3 h-3 mr-2 text-violet-400" fill="currentColor" viewBox="0 0 20 20">
@@ -89,8 +117,8 @@ const ToolCard: React.FC<ToolCardProps> = ({
 }
 
 const DatabaseBadge: React.FC<{ name: string; papers: string }> = ({ name, papers }) => (
-  <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
-    <div className="w-2 h-2 rounded-full bg-green-400"></div>
+  <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50 hover:border-violet-500/30 transition-all">
+    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
     <span className="text-sm font-medium text-white">{name}</span>
     <span className="text-xs text-slate-400">{papers}</span>
   </div>
@@ -115,7 +143,6 @@ const ResearchPage: React.FC = () => {
     setProjectsLoading(true);
     setError(null);
     try {
-      // Use research_projects table directly (more reliable than view)
       const { data, error: queryError } = await supabase
         .from('research_projects')
         .select('*')
@@ -125,7 +152,6 @@ const ResearchPage: React.FC = () => {
 
       if (queryError) {
         console.error('Error fetching projects:', queryError);
-        // Don't throw - just set empty array so page still works
         setProjects([]);
         setError('Unable to load projects. You can still use all tools below.');
         return;
@@ -133,7 +159,6 @@ const ResearchPage: React.FC = () => {
       setProjects(data || []);
     } catch (err: any) {
       console.error('Error fetching projects:', err);
-      // Set empty array on any error so page still works
       setProjects([]);
       setError('Unable to load projects. You can still use all tools below.');
     } finally {
@@ -224,6 +249,33 @@ const ResearchPage: React.FC = () => {
     },
   ];
 
+  const researchTemplates = [
+    {
+      icon: Microscope,
+      title: "Systematic Review Template",
+      description: "Complete PRISMA-compliant systematic review framework",
+      color: "text-cyan-400"
+    },
+    {
+      icon: BarChart3,
+      title: "Meta-Analysis Template",
+      description: "Statistical pooling and forest plot generation guide",
+      color: "text-green-400"
+    },
+    {
+      icon: FileText,
+      title: "Scoping Review Template",
+      description: "Structured framework for scoping review methodology",
+      color: "text-orange-400"
+    },
+    {
+      icon: Target,
+      title: "Rapid Review Template",
+      description: "Accelerated evidence synthesis template",
+      color: "text-pink-400"
+    }
+  ];
+
   const databases = [
     { name: 'PubMed', papers: '35M' },
     { name: 'OpenAlex', papers: '250M' },
@@ -234,240 +286,327 @@ const ResearchPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-violet-500/30">
+      {/* Animated Background Gradients */}
+      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-3xl -z-10 opacity-20 animate-pulse"></div>
+      <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl -z-10 opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
+
       <ResearchHeader showBackToTools={false} />
 
-      {/* My Projects Section - Only for logged-in users */}
-      {user && !authLoading && (
-        <section className="max-w-6xl mx-auto px-6 pt-8 pb-6">
-          <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <FolderOpen className="w-5 h-5 text-violet-400" />
-                <h2 className="text-xl font-bold text-white">My Projects</h2>
-              </div>
-              <Link
-                href="/mph/dashboard"
-                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                New Project
-              </Link>
-            </div>
-            {error && (
-              <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-300 text-sm">
-                {error}
-              </div>
-            )}
-            {projectsLoading ? (
-              <div className="text-center py-4 text-slate-400">Loading projects...</div>
-            ) : projects.length > 0 ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {projects.map((project) => (
-                  <Link
-                    key={project.id}
-                    href={`/mph/project/${project.id}`}
-                    className="block p-4 bg-slate-900/50 rounded-lg border border-slate-700/50 hover:border-violet-500/50 hover:bg-slate-800/50 transition-all"
-                  >
-                    <h3 className="text-white font-semibold mb-1 truncate">{project.title}</h3>
-                    <p className="text-slate-400 text-sm mb-2 line-clamp-2">{project.description || 'No description'}</p>
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {new Date(project.updated_at).toLocaleDateString()}
-                      </span>
-                      <span className="px-2 py-1 bg-violet-500/20 text-violet-400 rounded">
-                        {project.status || 'planning'}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <p className="text-slate-400 mb-4">You don't have any projects yet.</p>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-12">
+        {/* My Projects Section - Only for logged-in users */}
+        {user && !authLoading && (
+          <section className="mb-12">
+            <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-6 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="w-5 h-5 text-violet-400" />
+                  <h2 className="text-xl font-bold text-white">My Projects</h2>
+                </div>
                 <Link
                   href="/mph/dashboard"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  Create Your First Project
+                  New Project
                 </Link>
               </div>
-            )}
-            {projects.length > 0 && (
-              <div className="mt-4 text-center">
-                <Link
-                  href="/mph/dashboard"
-                  className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 text-sm transition-colors"
-                >
-                  View All Projects
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Hero Section */}
-      <section className="max-w-6xl mx-auto px-6 pt-16 pb-12 text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-full mb-6">
-          <span className="text-violet-400 text-sm">🔬</span>
-          <span className="text-violet-300 text-sm font-medium">Research Tools</span>
-        </div>
-
-        {/* Headline */}
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-          Systematic Review
-          <span className="block text-violet-400">Made Simple</span>
-        </h1>
-
-        {/* Subheadline */}
-        <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-8">
-          {user 
-            ? 'Manage your systematic reviews and access all research tools. Create projects, collaborate with your team, and track your progress.'
-            : 'Tools for literature search, deduplication, and PRISMA compliance. Search 1+ billion papers across multiple databases. No login required.'}
-        </p>
-
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-          <a
-            href="/mph/search"
-            className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
-          >
-            <span>Start Searching</span>
-          </a>
-          <a
-            href="#tools"
-            className="px-6 py-3 border border-slate-600 hover:border-slate-500 text-slate-300 font-medium rounded-lg transition-colors"
-          >
-            View All Tools
-          </a>
-        </div>
-
-        {/* Database Badges */}
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          {databases.map((db) => (
-            <DatabaseBadge key={db.name} name={db.name} papers={db.papers} />
-          ))}
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="max-w-6xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-          <div className="text-center p-6 bg-slate-800/30 rounded-xl border border-slate-700/50">
-            <div className="text-3xl font-bold text-white mb-1">1B+</div>
-            <div className="text-sm text-slate-400">Papers Searchable</div>
-          </div>
-          <div className="text-center p-6 bg-slate-800/30 rounded-xl border border-slate-700/50">
-            <div className="text-3xl font-bold text-white mb-1">10+</div>
-            <div className="text-sm text-slate-400">Database Sources</div>
-          </div>
-          <div className="text-center p-6 bg-slate-800/30 rounded-xl border border-slate-700/50">
-            <div className="text-3xl font-bold text-white mb-1">100%</div>
-            <div className="text-sm text-slate-400">PRISMA Compliant</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Tools Grid */}
-      <section id="tools" className="max-w-6xl mx-auto px-6 py-12">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl font-bold text-white mb-2">Available Tools</h2>
-          <p className="text-slate-400">Everything you need for systematic reviews and meta-analyses</p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tools.map((tool) => (
-            <ToolCard key={tool.title} {...tool} />
-          ))}
-        </div>
-      </section>
-
-      {/* Workflow Section */}
-      <section className="max-w-6xl mx-auto px-6 py-12">
-        <div className="bg-slate-800/30 rounded-2xl border border-slate-700/50 p-8">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Systematic Review Workflow</h2>
-
-          <div className="grid md:grid-cols-5 gap-4">
-            {[
-              { step: '1', title: 'Search', desc: 'Multi-database', tool: 'Literature Search' },
-              { step: '2', title: 'Dedupe', desc: 'Remove duplicates', tool: 'Deduplication' },
-              { step: '3', title: 'Screen', desc: 'Title/Abstract', tool: 'ASReview Export' },
-              { step: '4', title: 'Extract', desc: 'Data collection', tool: 'Extraction Forms' },
-              { step: '5', title: 'Report', desc: 'PRISMA diagram', tool: 'PRISMA Generator' },
-            ].map((item, idx) => (
-              <div key={item.step} className="relative">
-                <div className="text-center">
-                  <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center">
-                    <span className="text-violet-400 font-bold">{item.step}</span>
-                  </div>
-                  <h3 className="text-white font-medium mb-1">{item.title}</h3>
-                  <p className="text-xs text-slate-400 mb-2">{item.desc}</p>
-                  <span className="text-xs text-violet-400">{item.tool}</span>
+              {error && (
+                <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-300 text-sm">
+                  {error}
                 </div>
-                {/* Arrow */}
-                {idx < 4 && <div className="hidden md:block absolute top-5 -right-2 text-slate-600">→</div>}
+              )}
+              {projectsLoading ? (
+                <div className="text-center py-4 text-slate-400">Loading projects...</div>
+              ) : projects.length > 0 ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {projects.map((project) => (
+                    <Link
+                      key={project.id}
+                      href={`/mph/project/${project.id}`}
+                      className="block p-4 bg-slate-900/50 rounded-lg border border-slate-700/50 hover:border-violet-500/50 hover:bg-slate-800/50 transition-all"
+                    >
+                      <h3 className="text-white font-semibold mb-1 truncate">{project.title}</h3>
+                      <p className="text-slate-400 text-sm mb-2 line-clamp-2">{project.description || 'No description'}</p>
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(project.updated_at).toLocaleDateString()}
+                        </span>
+                        <span className="px-2 py-1 bg-violet-500/20 text-violet-400 rounded">
+                          {project.status || 'planning'}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-slate-400 mb-4">You don't have any projects yet.</p>
+                  <Link
+                    href="/mph/dashboard"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm rounded-lg transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create Your First Project
+                  </Link>
+                </div>
+              )}
+              {projects.length > 0 && (
+                <div className="mt-4 text-center">
+                  <Link
+                    href="/mph/dashboard"
+                    className="inline-flex items-center gap-2 text-violet-400 hover:text-violet-300 text-sm transition-colors"
+                  >
+                    View All Projects
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm font-medium mb-6 backdrop-blur-sm">
+            <Microscope size={16} />
+            MPH Research Tools
+          </div>
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight">
+            Systematic Review <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-purple-400">Made Simple</span>
+          </h1>
+          <p className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed mb-8">
+            {user 
+              ? 'Manage your systematic reviews and access all research tools. Create projects, collaborate with your team, and track your progress.'
+              : 'Tools for literature search, deduplication, and PRISMA compliance. Search 1+ billion papers across multiple databases.'}
+          </p>
+
+          {/* Database Badges */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+            {databases.map((db) => (
+              <DatabaseBadge key={db.name} name={db.name} papers={db.papers} />
+            ))}
+          </div>
+        </div>
+
+        {/* Success Metrics Banner */}
+        <div className="mb-12 p-6 rounded-2xl bg-gradient-to-r from-violet-900/20 to-purple-900/20 border border-violet-500/20 backdrop-blur-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div>
+              <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-violet-600 mb-1">10,000+</div>
+              <div className="text-slate-400 text-sm">MPH Students</div>
+            </div>
+            <div>
+              <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-violet-600 mb-1">60hrs</div>
+              <div className="text-slate-400 text-sm">Avg. Time Saved</div>
+            </div>
+            <div>
+              <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-violet-600 mb-1">1M+</div>
+              <div className="text-slate-400 text-sm">Reviews Completed</div>
+            </div>
+            <div>
+              <div className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-violet-600 mb-1">99%</div>
+              <div className="text-slate-400 text-sm">PRISMA Compliant</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div className="mb-12 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link
+            href="/mph/search"
+            className="group flex items-center justify-center gap-2 p-4 rounded-xl bg-violet-500/10 border border-violet-500/20 hover:border-violet-500/50 hover:bg-violet-500/20 transition-all"
+          >
+            <Rocket className="w-5 h-5 text-violet-400 group-hover:scale-110 transition-transform" />
+            <span className="text-white font-semibold text-sm">Start Search</span>
+          </Link>
+          <Link
+            href="/mph/dashboard"
+            className="group flex items-center justify-center gap-2 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-500/20 transition-all"
+          >
+            <FolderOpen className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+            <span className="text-white font-semibold text-sm">New Project</span>
+          </Link>
+          <Link
+            href="/mph/prisma"
+            className="group flex items-center justify-center gap-2 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 hover:border-blue-500/50 hover:bg-blue-500/20 transition-all"
+          >
+            <FileText className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" />
+            <span className="text-white font-semibold text-sm">PRISMA</span>
+          </Link>
+          <button
+            className="group flex items-center justify-center gap-2 p-4 rounded-xl bg-slate-800/50 border border-slate-700 hover:border-slate-600 hover:bg-slate-800 transition-all"
+          >
+            <BookOpen className="w-5 h-5 text-slate-400 group-hover:scale-110 transition-transform" />
+            <span className="text-white font-semibold text-sm">Templates</span>
+          </button>
+        </div>
+
+        {/* Database Coverage Statistics */}
+        <div className="mb-16 p-8 rounded-2xl bg-slate-900/50 border border-slate-800">
+          <div className="flex items-center gap-3 mb-6">
+            <Database className="w-6 h-6 text-violet-400" />
+            <h2 className="text-2xl font-bold text-white">Database Coverage</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center p-4">
+              <div className="text-4xl md:text-5xl font-bold text-violet-400 mb-2">1B+</div>
+              <div className="text-slate-400 text-sm">Papers Searchable</div>
+            </div>
+            <div className="text-center p-4">
+              <div className="text-4xl md:text-5xl font-bold text-purple-400 mb-2">10+</div>
+              <div className="text-slate-400 text-sm">Database Sources</div>
+            </div>
+            <div className="text-center p-4">
+              <div className="text-4xl md:text-5xl font-bold text-blue-400 mb-2">100%</div>
+              <div className="text-slate-400 text-sm">PRISMA Compliant</div>
+            </div>
+            <div className="text-center p-4">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Zap className="w-6 h-6 text-yellow-400" />
+                <span className="text-2xl font-bold text-yellow-400">Daily</span>
+              </div>
+              <div className="text-slate-400 text-sm">Updates</div>
+            </div>
+          </div>
+          <div className="mt-6 pt-6 border-t border-slate-800">
+            <p className="text-slate-400 text-sm text-center">
+              Search across: <span className="text-violet-400 font-semibold">PubMed</span>, <span className="text-violet-400 font-semibold">OpenAlex</span>, <span className="text-violet-400 font-semibold">Semantic Scholar</span>, <span className="text-violet-400 font-semibold">medRxiv</span>, <span className="text-violet-400 font-semibold">Europe PMC</span>, <span className="text-violet-400 font-semibold">CORE</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Research Templates */}
+        <div className="mb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <FileText className="w-6 h-6 text-violet-400" />
+            <h2 className="text-2xl font-bold text-white">Research Templates</h2>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {researchTemplates.map((template) => (
+              <div
+                key={template.title}
+                className="group p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-violet-500/50 transition-all hover:transform hover:-translate-y-1 cursor-pointer"
+              >
+                <div className="w-12 h-12 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <template.icon className={`w-6 h-6 ${template.color}`} />
+                </div>
+                <h3 className="text-white font-semibold mb-2 text-sm">{template.title}</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">{template.description}</p>
               </div>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* Integration Section */}
-      <section className="max-w-6xl mx-auto px-6 py-12">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-white mb-2">Works With Your Tools</h2>
-          <p className="text-slate-400">Export to your favorite systematic review software</p>
+        {/* Tools Grid */}
+        <section id="tools" className="mb-16">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-bold text-white mb-2">Available Tools</h2>
+            <p className="text-slate-400">Everything you need for systematic reviews and meta-analyses</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tools.map((tool) => (
+              <ToolCard key={tool.title} {...tool} />
+            ))}
+          </div>
+        </section>
+
+        {/* Integration Badges */}
+        <div className="mb-16 p-8 rounded-2xl bg-slate-900/50 border border-slate-800">
+          <div className="flex items-center gap-3 mb-6">
+            <Download className="w-6 h-6 text-violet-400" />
+            <h2 className="text-2xl font-bold text-white">Works With Your Favorite Tools</h2>
+          </div>
+          <p className="text-slate-400 mb-6">Export and integrate seamlessly with the tools you already use</p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {[
+              { name: 'ASReview', desc: 'AI Screening', icon: Activity },
+              { name: 'Zotero', desc: 'References', icon: BookOpen },
+              { name: 'RevMan', desc: 'Meta-analysis', icon: BarChart3 },
+              { name: 'R/meta', desc: 'Statistics', icon: TrendingUp },
+              { name: 'Rayyan', desc: 'Screening', icon: Users },
+            ].map((tool) => (
+              <div
+                key={tool.name}
+                className="flex items-center gap-3 p-4 rounded-xl bg-slate-800/50 border border-slate-700 hover:border-violet-500/30 transition-all"
+              >
+                <tool.icon className="w-5 h-5 text-violet-400" />
+                <div>
+                  <div className="text-white font-semibold text-sm">{tool.name}</div>
+                  <div className="text-slate-500 text-xs">{tool.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 flex flex-wrap gap-3 justify-center">
+            <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-xs">EndNote</span>
+            <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-xs">Mendeley</span>
+            <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-xs">Excel</span>
+            <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-xs">CSV</span>
+            <span className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-xs">RIS</span>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-6">
-          {[
-            { name: 'ASReview', desc: 'AI Screening' },
-            { name: 'Zotero', desc: 'References' },
-            { name: 'RevMan', desc: 'Meta-analysis' },
-            { name: 'R/meta', desc: 'Statistics' },
-            { name: 'Rayyan', desc: 'Screening' },
-          ].map((tool) => (
-            <div
-              key={tool.name}
-              className="px-4 py-3 bg-slate-800/50 rounded-lg border border-slate-700/50 text-center"
-            >
-              <div className="text-white font-medium">{tool.name}</div>
-              <div className="text-xs text-slate-400">{tool.desc}</div>
+        {/* Workflow Section */}
+        <section className="mb-16">
+          <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-8">
+            <h2 className="text-2xl font-bold text-white mb-6 text-center">Systematic Review Workflow</h2>
+
+            <div className="grid md:grid-cols-5 gap-4">
+              {[
+                { step: '1', title: 'Search', desc: 'Multi-database', tool: 'Literature Search' },
+                { step: '2', title: 'Dedupe', desc: 'Remove duplicates', tool: 'Deduplication' },
+                { step: '3', title: 'Screen', desc: 'Title/Abstract', tool: 'ASReview Export' },
+                { step: '4', title: 'Extract', desc: 'Data collection', tool: 'Extraction Forms' },
+                { step: '5', title: 'Report', desc: 'PRISMA diagram', tool: 'PRISMA Generator' },
+              ].map((item, idx) => (
+                <div key={item.step} className="relative">
+                  <div className="text-center">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-violet-500/20 border-2 border-violet-500/30 flex items-center justify-center">
+                      <span className="text-violet-400 font-bold text-lg">{item.step}</span>
+                    </div>
+                    <h3 className="text-white font-semibold mb-1">{item.title}</h3>
+                    <p className="text-xs text-slate-400 mb-2">{item.desc}</p>
+                    <span className="text-xs text-violet-400 font-medium">{item.tool}</span>
+                  </div>
+                  {/* Arrow */}
+                  {idx < 4 && <div className="hidden md:block absolute top-6 -right-2 text-violet-500/50 text-xl">→</div>}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
 
-      {/* CTA Section */}
-      <section className="max-w-6xl mx-auto px-6 py-16">
-        <div className="bg-gradient-to-r from-violet-600/20 to-purple-600/20 rounded-2xl border border-violet-500/20 p-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">Ready to Start Your Systematic Review?</h2>
-          <p className="text-slate-300 mb-6 max-w-xl mx-auto">
-            Join MPH and MHA students using MSDrills for their research projects. No account needed.
+        {/* CTA */}
+        <div className="text-center p-8 rounded-2xl bg-gradient-to-r from-violet-900/20 to-purple-900/20 border border-violet-500/20">
+          <h3 className="text-2xl font-bold text-white mb-3">
+            Ready to Start Your Systematic Review?
+          </h3>
+          <p className="text-slate-400 mb-6 max-w-2xl mx-auto">
+            Join MPH and MHA students using Mastering Academia for their research projects. Start searching across 1B+ papers today.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
+            <Link
               href="/mph/search"
-              className="px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-medium rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-violet-500 hover:bg-violet-400 text-white font-bold rounded-xl transition-all hover:scale-105 shadow-xl shadow-violet-500/20"
             >
               Get Started Now
-            </a>
+              <ArrowRight className="w-5 h-5" />
+            </Link>
             <a
               href="https://youtube.com/@MasteringPublicHealth"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-3 border border-slate-600 hover:border-slate-500 text-slate-300 font-medium rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 px-8 py-4 border border-slate-600 hover:border-slate-500 text-slate-300 font-semibold rounded-xl transition-all"
             >
               Watch Tutorials →
             </a>
           </div>
         </div>
-      </section>
+      </main>
 
       {/* Footer */}
       <Footer />
