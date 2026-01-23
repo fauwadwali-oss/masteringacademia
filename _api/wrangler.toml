@@ -10,6 +10,7 @@ local_protocol = "http"
 # Production environment
 [env.production]
 name = "msdrills-research-api"
+workers_dev = true
 routes = [
   { pattern = "api.msdrills.com/research/*", zone_name = "msdrills.com" }
 ]

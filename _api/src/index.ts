@@ -1200,6 +1200,11 @@ export default {
         return await handleComprehensiveSearchEndpoint(body, env);
       }
 
+      // POST /mph/comprehensive-search - AI-powered comprehensive search for MPH
+      if (path === '/mph/comprehensive-search' && request.method === 'POST') {
+        return await handleMphComprehensiveSearch(request, env);
+      }
+
       // GET /mhamba/search - Simple query param search
       if (path === '/mhamba/search' && request.method === 'GET') {
         const query = url.searchParams.get('q') || url.searchParams.get('query');
@@ -2686,6 +2691,8 @@ async function exportMhambaPapers(
 // ============================================
 // Comprehensive Search Handler
 // ============================================
+
+import { handleMphComprehensiveSearch } from './mph-comprehensive-search';
 
 async function handleComprehensiveSearchEndpoint(
   body: any,
