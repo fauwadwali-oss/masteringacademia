@@ -36,6 +36,10 @@ const DATABASES: Database[] = [
   { id: 'europe_pmc', name: 'Europe PMC', count: '40M', enabled: false },
   { id: 'medrxiv', name: 'medRxiv', count: '50K+', enabled: true },
   { id: 'biorxiv', name: 'bioRxiv', count: '200K+', enabled: false },
+  { id: 'doaj_health', name: 'DOAJ Health', count: '5K+ Journals', enabled: false },
+  { id: 'plos', name: 'PLOS', count: '300K+', enabled: false },
+  { id: 'pmc_fulltext', name: 'PMC Full Text', count: '8M+', enabled: false },
+  { id: 'who_iris', name: 'WHO IRIS', count: '100K+', enabled: false },
 ];
 
 const STUDY_TYPES = [
