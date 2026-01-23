@@ -55,6 +55,10 @@ const DATABASES = [
     { id: 'europe_pmc', name: 'Europe PMC', papers: '40M', color: 'teal' },
     { id: 'medrxiv', name: 'medRxiv', papers: '50K+', color: 'orange' },
     { id: 'biorxiv', name: 'bioRxiv', papers: '200K+', color: 'pink' },
+    { id: 'doaj_health', name: 'DOAJ Health', papers: '5K+ Journals', color: 'indigo' },
+    { id: 'plos', name: 'PLOS', papers: '300K+', color: 'yellow' },
+    { id: 'pmc_fulltext', name: 'PMC Full Text', papers: '8M+', color: 'cyan' },
+    { id: 'who_iris', name: 'WHO IRIS', papers: '100K+', color: 'red' },
 ];
 
 interface LiteratureSearchToolProps {

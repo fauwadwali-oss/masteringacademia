@@ -58,6 +58,10 @@ const SOURCES = [
     { id: 'crossref', name: 'Crossref', papers: '140M', color: 'blue', type: 'api' },
     { id: 'semantic_scholar', name: 'Semantic Scholar', papers: '200M', color: 'purple', type: 'api' },
     { id: 'core', name: 'CORE', papers: '200M', color: 'orange', type: 'api' },
+    { id: 'doaj', name: 'DOAJ', papers: '18K+ Journals', color: 'indigo', type: 'api' },
+    { id: 'arxiv_econ', name: 'arXiv Economics', papers: '50K+', color: 'pink', type: 'api' },
+    { id: 'repec', name: 'RePEc', papers: '3.9M+', color: 'cyan', type: 'api' },
+    { id: 'base', name: 'BASE', papers: '350M', color: 'amber', type: 'api' },
     { id: 'google_scholar', name: 'Google Scholar', papers: 'Broad', color: 'red', type: 'scraper', apify: true },
     { id: 'ssrn', name: 'SSRN', papers: '1M+', color: 'teal', type: 'scraper', apify: true },
 ];

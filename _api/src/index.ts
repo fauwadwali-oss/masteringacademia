@@ -1342,6 +1342,18 @@ async function handleSearch(body: SearchRequest, env: Env): Promise<Response> {
       case 'biorxiv':
         searchPromises.push(searchMedRxiv(query, maxResults, 'biorxiv'));
         break;
+      case 'doaj_health':
+        searchPromises.push(searchDOAJHealthWrapper(query, maxResults));
+        break;
+      case 'plos':
+        searchPromises.push(searchPLOSWrapper(query, maxResults));
+        break;
+      case 'pmc_fulltext':
+        searchPromises.push(searchPMCFullTextWrapper(query, maxResults));
+        break;
+      case 'who_iris':
+        searchPromises.push(searchWHOIRISWrapper(query, maxResults));
+        break;
     }
   }
 
@@ -1920,6 +1932,18 @@ async function handleMhambaSearch(
         break;
       case 'ssrn':
         searchPromises.push(searchSSRN(query, maxResults, env.APIFY_API_KEY));
+        break;
+      case 'doaj':
+        searchPromises.push(searchDOAJWrapper(query, 'business', maxResults));
+        break;
+      case 'arxiv_econ':
+        searchPromises.push(searchArXivEconWrapper(query, maxResults));
+        break;
+      case 'repec':
+        searchPromises.push(searchRepECWrapper(query, maxResults));
+        break;
+      case 'base':
+        searchPromises.push(searchBASEWrapper(query, '121', maxResults)); // 121 = Economics
         break;
     }
   }
@@ -3025,4 +3049,218 @@ function calculatePaperStats(papers: any[]): any {
     .slice(0, 10);
 
   return stats;
+}
+
+// ============================================
+// Open Access Source Wrappers
+// ============================================
+
+import {
+  searchDOAJ,
+  searchArXivEcon,
+  searchRepEC,
+  searchBASE,
+  searchPLOS,
+  searchPMCFullText,
+  searchWHOIRIS
+} from './open-access-sources';
+
+// DOAJ Business wrapper
+async function searchDOAJWrapper(query: string, subject: string, maxResults: number): Promise<MhambaSearchResult> {
+  const startTime = Date.now();
+  try {
+    const papers = await searchDOAJ(query, subject, maxResults);
+    return {
+      source: 'doaj',
+      papers: papers.map(p => ({
+        ...p,
+        journal_tier: undefined,
+        abs_rating: undefined,
+        abdc_rating: undefined,
+        is_ft50: false,
+      })),
+      totalCount: papers.length,
+      searchTime: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      source: 'doaj',
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error.message,
+    };
+  }
+}
+
+// DOAJ Health wrapper
+async function searchDOAJHealthWrapper(query: string, maxResults: number): Promise<SearchResult> {
+  const startTime = Date.now();
+  try {
+    const papers = await searchDOAJ(query, 'health', maxResults);
+    return {
+      database: 'doaj_health',
+      papers,
+      totalCount: papers.length,
+      searchTime: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      database: 'doaj_health',
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error.message,
+    };
+  }
+}
+
+// arXiv Economics wrapper
+async function searchArXivEconWrapper(query: string, maxResults: number): Promise<MhambaSearchResult> {
+  const startTime = Date.now();
+  try {
+    const papers = await searchArXivEcon(query, maxResults);
+    return {
+      source: 'arxiv_econ',
+      papers: papers.map(p => ({
+        ...p,
+        journal_tier: undefined,
+        abs_rating: undefined,
+        abdc_rating: undefined,
+        is_ft50: false,
+      })),
+      totalCount: papers.length,
+      searchTime: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      source: 'arxiv_econ',
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error.message,
+    };
+  }
+}
+
+// RePEc wrapper
+async function searchRepECWrapper(query: string, maxResults: number): Promise<MhambaSearchResult> {
+  const startTime = Date.now();
+  try {
+    const papers = await searchRepEC(query, maxResults);
+    return {
+      source: 'repec',
+      papers: papers.map(p => ({
+        ...p,
+        journal_tier: undefined,
+        abs_rating: undefined,
+        abdc_rating: undefined,
+        is_ft50: false,
+      })),
+      totalCount: papers.length,
+      searchTime: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      source: 'repec',
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error.message,
+    };
+  }
+}
+
+// BASE wrapper
+async function searchBASEWrapper(query: string, doctype: string, maxResults: number): Promise<MhambaSearchResult> {
+  const startTime = Date.now();
+  try {
+    const papers = await searchBASE(query, doctype, maxResults);
+    return {
+      source: 'base',
+      papers: papers.map(p => ({
+        ...p,
+        journal_tier: undefined,
+        abs_rating: undefined,
+        abdc_rating: undefined,
+        is_ft50: false,
+      })),
+      totalCount: papers.length,
+      searchTime: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      source: 'base',
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error.message,
+    };
+  }
+}
+
+// PLOS wrapper
+async function searchPLOSWrapper(query: string, maxResults: number): Promise<SearchResult> {
+  const startTime = Date.now();
+  try {
+    const papers = await searchPLOS(query, maxResults);
+    return {
+      database: 'plos',
+      papers,
+      totalCount: papers.length,
+      searchTime: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      database: 'plos',
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error.message,
+    };
+  }
+}
+
+// PMC Full Text wrapper
+async function searchPMCFullTextWrapper(query: string, maxResults: number): Promise<SearchResult> {
+  const startTime = Date.now();
+  try {
+    const papers = await searchPMCFullText(query, maxResults);
+    return {
+      database: 'pmc_fulltext',
+      papers,
+      totalCount: papers.length,
+      searchTime: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      database: 'pmc_fulltext',
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error.message,
+    };
+  }
+}
+
+// WHO IRIS wrapper
+async function searchWHOIRISWrapper(query: string, maxResults: number): Promise<SearchResult> {
+  const startTime = Date.now();
+  try {
+    const papers = await searchWHOIRIS(query, maxResults);
+    return {
+      database: 'who_iris',
+      papers,
+      totalCount: papers.length,
+      searchTime: Date.now() - startTime,
+    };
+  } catch (error: any) {
+    return {
+      database: 'who_iris',
+      papers: [],
+      totalCount: 0,
+      searchTime: Date.now() - startTime,
+      error: error.message,
+    };
+  }
 }
