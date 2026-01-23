@@ -22,11 +22,3 @@ routes = [
 [vars]
 ENVIRONMENT = "production"
 
-# Bindings (if needed later)
-# [[kv_namespaces]]
-# binding = "SEARCH_CACHE"
-# id = "xxx"
-
-# [[r2_buckets]]
-# binding = "EXPORTS"
-# bucket_name = "msdrills-exports"

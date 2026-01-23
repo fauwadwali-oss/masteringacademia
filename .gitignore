@@ -39,3 +39,4 @@ yarn-error.log*
 
 # Misc
 *.zip
+_api/.env.local

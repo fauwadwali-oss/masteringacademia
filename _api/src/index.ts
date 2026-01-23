@@ -1194,6 +1194,12 @@ export default {
         return await handleMhambaSearch(body, env);
       }
 
+      // POST /mhamba/comprehensive-search - AI-powered comprehensive search
+      if (path === '/mhamba/comprehensive-search' && request.method === 'POST') {
+        const body = await request.json();
+        return await handleComprehensiveSearchEndpoint(body, env);
+      }
+
       // GET /mhamba/search - Simple query param search
       if (path === '/mhamba/search' && request.method === 'GET') {
         const query = url.searchParams.get('q') || url.searchParams.get('query');
@@ -2675,4 +2681,341 @@ async function exportMhambaPapers(
   }
 
   return jsonResponse({ error: 'Invalid format. Use "csv", "ris", or "bibtex"' }, 400);
+}
+
+// ============================================
+// Comprehensive Search Handler
+// ============================================
+
+async function handleComprehensiveSearchEndpoint(
+  body: any,
+  env: Env
+): Promise<Response> {
+  const {
+    query,
+    sources = ['openalex', 'crossref', 'semantic_scholar'],
+    maxResults = 100,
+    targetJournals,
+    timeFrame,
+    minCitations,
+    userId,
+    projectId
+  } = body;
+
+  if (!query) {
+    return jsonResponse({ error: 'Missing query' }, 400);
+  }
+
+  // Check if API keys are configured
+  if (!env.ANTHROPIC_API_KEY && !env.GEMINI_API_KEY) {
+    return jsonResponse({ 
+      error: 'AI analysis not configured. Please contact administrator.' 
+    }, 503);
+  }
+
+  try {
+    // Step 1: Perform regular search first
+    const searchBody = {
+      query,
+      sources,
+      maxResults,
+      userId,
+      projectId
+    };
+
+    const searchResponse = await handleMhambaSearch(searchBody, env);
+    const searchData = await searchResponse.json();
+
+    if (!searchData.results || !searchData.results.papers) {
+      return jsonResponse({ 
+        error: 'Search failed or returned no results' 
+      }, 500);
+    }
+
+    const papers = searchData.results.papers;
+
+    // Step 2: Perform AI-powered comprehensive analysis
+    const comprehensiveResult = await performComprehensiveAnalysis(
+      query,
+      papers,
+      env
+    );
+
+    return jsonResponse({
+      ...searchData,
+      comprehensive: comprehensiveResult
+    });
+
+  } catch (error: any) {
+    console.error('Comprehensive search error:', error);
+    return jsonResponse({ 
+      error: 'Comprehensive search failed',
+      details: error.message 
+    }, 500);
+  }
+}
+
+async function performComprehensiveAnalysis(
+  query: string,
+  papers: any[],
+  env: Env
+): Promise<any> {
+  // Prepare paper summaries for LLM
+  const paperSummaries = papers.slice(0, 50).map((p, idx) => {
+    return `[${idx + 1}] ${p.title} (${p.year || 'N/A'})
+Journal: ${p.journal || 'Unknown'} ${p.abs_rating ? `(ABS ${p.abs_rating})` : ''}
+Citations: ${p.citation_count || 0}
+Abstract: ${p.abstract?.substring(0, 500) || 'No abstract available'}...
+`;
+  }).join('\n\n');
+
+  const systemPrompt = `You are an expert research analyst specializing in business and management literature. You provide comprehensive, evidence-based analysis of academic research.`;
+
+  const prompt = `I conducted a literature search on: "${query}"
+
+Here are the top ${Math.min(50, papers.length)} papers found:
+
+${paperSummaries}
+
+Please provide a comprehensive analysis in the following JSON format:
+{
+  "summary": "A 3-4 paragraph synthesis of the research landscape",
+  "keyThemes": [
+    {
+      "title": "Theme title",
+      "description": "Detailed description",
+      "paperCount": 10,
+      "keyPapers": ["Paper title 1", "Paper title 2"]
+    }
+  ],
+  "researchGaps": [
+    {
+      "title": "Gap title",
+      "description": "What's missing",
+      "opportunity": "Research opportunity",
+      "relatedPapers": ["Paper title"]
+    }
+  ],
+  "suggestedQuestions": ["Question 1", "Question 2", "Question 3"],
+  "methodologicalInsights": ["Insight 1", "Insight 2", "Insight 3"]
+}
+
+Focus on:
+1. Major themes and patterns in the literature
+2. Theoretical frameworks being used
+3. Methodological approaches
+4. Clear research gaps and opportunities
+5. Future research directions
+
+Return ONLY valid JSON, no additional text.`;
+
+  const response = await callLLM(prompt, systemPrompt, env);
+  
+  try {
+    // Extract JSON from response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON found in response');
+    }
+    const analysis = JSON.parse(jsonMatch[0]);
+
+    // Generate annotated bibliography for top 10 papers
+    const annotatedBibliography = await generateAnnotations(papers.slice(0, 10), env);
+
+    // Calculate statistics
+    const stats = calculatePaperStats(papers);
+
+    return {
+      analysis,
+      annotatedBibliography,
+      stats
+    };
+  } catch (e) {
+    console.error('Failed to parse analysis:', e);
+    return {
+      analysis: {
+        summary: 'Analysis failed. Please try again.',
+        keyThemes: [],
+        researchGaps: [],
+        suggestedQuestions: [],
+        methodologicalInsights: []
+      },
+      annotatedBibliography: [],
+      stats: calculatePaperStats(papers)
+    };
+  }
+}
+
+async function callLLM(
+  prompt: string,
+  systemPrompt: string,
+  env: Env
+): Promise<string> {
+  const apiKey = env.ANTHROPIC_API_KEY || env.GEMINI_API_KEY;
+  const provider = env.ANTHROPIC_API_KEY ? 'anthropic' : 'gemini';
+
+  if (provider === 'anthropic') {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-20250514',
+        max_tokens: 8000,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Claude API error: ${response.statusText} - ${error}`);
+    }
+
+    const data = await response.json();
+    return data.content[0].text;
+  } else {
+    // Gemini
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `${systemPrompt}\n\n${prompt}`
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            maxOutputTokens: 8000,
+            temperature: 0.7
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text;
+  }
+}
+
+async function generateAnnotations(papers: any[], env: Env): Promise<any[]> {
+  const annotated: any[] = [];
+  
+  for (const paper of papers) {
+    const systemPrompt = `You are an expert research analyst. Create detailed, accurate annotations for academic papers.`;
+    
+    const prompt = `Create a detailed annotation for this paper:
+
+Title: ${paper.title}
+Authors: ${Array.isArray(paper.authors) ? paper.authors.map((a: any) => a.name).join(', ') : 'Unknown'}
+Journal: ${paper.journal || 'Unknown'}
+Year: ${paper.year || 'N/A'}
+Abstract: ${paper.abstract || 'No abstract available'}
+
+Provide a JSON response with:
+{
+  "keyFindings": ["Finding 1", "Finding 2", "Finding 3"],
+  "methodology": "Description of research methodology",
+  "theoreticalFramework": "Theoretical frameworks used",
+  "relevance": "Why this paper is relevant",
+  "limitations": "Key limitations"
+}
+
+Base your analysis ONLY on the information provided. Return ONLY valid JSON.`;
+
+    try {
+      const response = await callLLM(prompt, systemPrompt, env);
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const annotation = JSON.parse(jsonMatch[0]);
+        annotated.push({ paper, annotation });
+      }
+    } catch (e) {
+      console.error(`Failed to annotate paper: ${paper.title}`, e);
+      annotated.push({
+        paper,
+        annotation: {
+          keyFindings: ['Analysis pending'],
+          methodology: 'Not analyzed',
+          theoreticalFramework: 'Not analyzed',
+          relevance: 'Relevant to search query',
+          limitations: 'Not analyzed'
+        }
+      });
+    }
+  }
+  
+  return annotated;
+}
+
+function calculatePaperStats(papers: any[]): any {
+  const stats = {
+    totalPapers: papers.length,
+    journalDistribution: {} as Record<string, number>,
+    yearDistribution: {} as Record<string, number>,
+    avgCitations: 0,
+    topJournals: [] as Array<{ journal: string; count: number; avgTier: number }>
+  };
+
+  let totalCitations = 0;
+  const journalData = new Map<string, { count: number; tiers: number[] }>();
+
+  for (const paper of papers) {
+    if (paper.journal) {
+      stats.journalDistribution[paper.journal] = (stats.journalDistribution[paper.journal] || 0) + 1;
+      
+      if (!journalData.has(paper.journal)) {
+        journalData.set(paper.journal, { count: 0, tiers: [] });
+      }
+      const jData = journalData.get(paper.journal)!;
+      jData.count++;
+      if (paper.journal_tier) {
+        jData.tiers.push(paper.journal_tier);
+      }
+    }
+
+    if (paper.year) {
+      const yearStr = paper.year.toString();
+      stats.yearDistribution[yearStr] = (stats.yearDistribution[yearStr] || 0) + 1;
+    }
+
+    if (paper.citation_count) {
+      totalCitations += paper.citation_count;
+    }
+  }
+
+  stats.avgCitations = papers.length > 0 ? Math.round(totalCitations / papers.length) : 0;
+
+  stats.topJournals = Array.from(journalData.entries())
+    .map(([journal, data]) => ({
+      journal,
+      count: data.count,
+      avgTier: data.tiers.length > 0 
+        ? data.tiers.reduce((a, b) => a + b, 0) / data.tiers.length 
+        : 0
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  return stats;
 }
